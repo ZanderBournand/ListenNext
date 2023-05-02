@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -20,12 +21,14 @@ const (
 )
 
 type Release struct {
-	Artist    string
-	Title     string
-	Date      string
-	Cover     string
-	Genres    []string
-	Producers []string
+	Artists    []string
+	Featurings []string
+	Title      string
+	Date       string
+	Cover      string
+	Genres     []string
+	Producers  []string
+	Tracklist  []string
 }
 
 func main() {
@@ -39,7 +42,7 @@ func main() {
 		fmt.Println("Fetching " + releaseType + "s...")
 		go func(i int, releaseType string) {
 			defer wg.Done()
-			getReleases("2023-03", 0, &allReleases[i], releaseType)
+			getReleases("2023-04", 0, &allReleases[i], releaseType)
 		}(i, releaseType)
 	}
 
@@ -48,7 +51,6 @@ func main() {
 	for i, releaseType := range releaseTypes {
 		fmt.Println(releaseType, "count:", len(allReleases[i]))
 	}
-
 }
 
 func getReleases(date string, start int, allReleases *[]Release, releaseType string) {
@@ -87,17 +89,17 @@ func getReleases(date string, start int, allReleases *[]Release, releaseType str
 	c.OnHTML("div.albumBlock", func(e *colly.HTMLElement) {
 		date := e.ChildText("div.date")
 		cover := e.ChildAttr("img.lazyload", "data-src")
-		artist := e.ChildText("div.artistTitle")
 		link := e.DOM.Find("div.albumTitle").Parent().AttrOr("href", "")
 		title := e.ChildText("div.albumTitle")
 
 		release := Release{
-			Artist:    artist,
-			Title:     title,
-			Date:      date,
-			Cover:     cover,
-			Genres:    []string{},
-			Producers: []string{},
+			Artists:    []string{},
+			Featurings: []string{},
+			Title:      title,
+			Date:       date,
+			Cover:      cover,
+			Genres:     []string{},
+			Producers:  []string{},
 		}
 
 		wg.Add(1)
@@ -121,6 +123,44 @@ func getReleases(date string, start int, allReleases *[]Release, releaseType str
 	c.Post(fetch_url, data)
 	c.Wait()
 	wg.Wait()
+}
+
+func splitString(str string, separators []string) []string {
+	if len(separators) == 0 {
+		return []string{str}
+	}
+	sep := separators[0]
+	parts := strings.Split(str, sep)
+	result := []string{}
+	for _, part := range parts {
+		result = append(result, splitString(part, separators[1:])...)
+	}
+	return result
+}
+
+func getFeaturedArtists(songTitle string) []string {
+
+	re := regexp.MustCompile(`(?i)(?:(\[with|\(with)\.?|(\[featuring|\(featuring| featuring)\.?|(\[feat|\(feat| feat)\.?|(\[ft|\(ft| ft)\.?)[^\p{L}\d&',.?%^@#*=+~"$:;<>|/\\’!\d-]*([\p{L}\d&',.?%^@#*=+~"$:;<>|/\\’!\d-]+(?:\s+[\p{L}\d&',.?%^@#*=+~"$:;<>|/\\’!\d-]+)*)`)
+	matches := re.FindAllStringSubmatch(songTitle, -1)
+	if len(matches) == 0 {
+		return []string{}
+	}
+
+	featuredArtists := []string{}
+
+	for _, match := range matches {
+		artist := match[len(match)-1]
+		separators := []string{"& ", ", ", "/ ", "\\ ", "feat. ", "ft. "}
+		parts := splitString(artist, separators)
+		for _, part := range parts {
+			part = strings.TrimSpace(part)
+			if part != "" && part != " " && part != "." {
+				featuredArtists = append(featuredArtists, part)
+			}
+		}
+	}
+
+	return featuredArtists
 }
 
 func getDetails(link string, details *Release) {
@@ -148,16 +188,60 @@ func getDetails(link string, details *Release) {
 	c1.OnHTML("td.name a", func(e *colly.HTMLElement) {
 		details.Producers = append(details.Producers, e.Text)
 	})
+
+	c1.OnHTML("div.artist", func(e *colly.HTMLElement) {
+		e.ForEach("a", func(_ int, el *colly.HTMLElement) {
+			details.Artists = append(details.Artists, el.Text)
+		})
+	})
+
 	c1.OnHTML("a[itemprop=genre]", func(e *colly.HTMLElement) {
 		details.Genres = append(details.Genres, e.Text)
+	})
+
+	c1.OnHTML(".trackList ol li", func(e *colly.HTMLElement) {
+		trackTitle := strings.TrimSpace(e.Text)
+		featuredArtists := getFeaturedArtists(trackTitle)
+
+		details.Tracklist = append(details.Tracklist, trackTitle)
+		details.Featurings = append(details.Featurings, featuredArtists...)
+	})
+
+	c1.OnHTML("td.trackTitle", func(e *colly.HTMLElement) {
+		if e.DOM.Find("span:first-child.featuredArtists").Length() > 0 {
+			e.DOM.Find("span:first-child.featuredArtists").Remove()
+		}
+
+		var trackTitle strings.Builder
+		var featuredArtists []string
+
+		trackTitle.WriteString(e.DOM.Find("a:first-child").First().Text())
+
+		e.ForEach("div.featuredArtists a", func(_ int, a *colly.HTMLElement) {
+			featuredArtists = append(featuredArtists, a.Text)
+		})
+
+		if len(featuredArtists) > 0 {
+			trackTitle.WriteString(" (feat. ")
+			for i, artist := range featuredArtists {
+				trackTitle.WriteString(artist)
+				if i < len(featuredArtists)-1 {
+					trackTitle.WriteString(", ")
+				}
+			}
+			trackTitle.WriteString(")")
+		}
+
+		details.Tracklist = append(details.Tracklist, trackTitle.String())
+		details.Featurings = append(details.Featurings, featuredArtists...)
 	})
 
 	c1.OnError(func(r *colly.Response, err error) {
 		fmt.Println("ERROR:", r.StatusCode)
 	})
 
-	c1.Post(credits_url, data)
 	c1.Visit(base_url + link)
+	c1.Post(credits_url, data)
 
 	c1.Wait()
 }
