@@ -22,14 +22,14 @@ const (
 )
 
 type Release struct {
-	Artists    []string
-	Featurings []string
-	Title      string
-	Date       string
-	Cover      string
-	Genres     []string
-	Producers  []string
-	Tracklist  []string
+	Artists    []string `json:"artists"`
+	Featurings []string `json:"featurings"`
+	Title      string   `json:"title"`
+	Date       string   `json:"date"`
+	Cover      string   `json:"cover"`
+	Genres     []string `json:"genres"`
+	Producers  []string `json:"producers"`
+	Tracklist  []string `json:"tracklist"`
 }
 
 func main() {
@@ -217,25 +217,25 @@ func getDetails(link string, details *Release) {
 
 func checkAddDuplicates(candidates []string, contributors *[]string) {
 	for _, name := range candidates {
-		name = strings.ToLower(name)
-		name = strings.Map(func(r rune) rune {
+		lowerName := strings.ToLower(name)
+		lowerName = strings.Map(func(r rune) rune {
 			if unicode.IsLetter(r) || unicode.IsDigit(r) {
 				return r
 			}
 			return -1
-		}, name)
+		}, lowerName)
 
 		found := false
 		for _, contributor := range *contributors {
-			contributor = strings.ToLower(contributor)
-			contributor = strings.Map(func(r rune) rune {
+			lowerContributor := strings.ToLower(contributor)
+			lowerContributor = strings.Map(func(r rune) rune {
 				if unicode.IsLetter(r) || unicode.IsDigit(r) {
 					return r
 				}
 				return -1
-			}, contributor)
+			}, lowerContributor)
 
-			if strings.EqualFold(name, contributor) {
+			if strings.EqualFold(lowerName, lowerContributor) {
 				found = true
 				break
 			}
@@ -255,7 +255,7 @@ func parseTitle(songTitle string) [][]string {
 	re1 := regexp.MustCompile(`(?i)(?:(\[featuring|\(featuring| featuring)\.?|(\[feat|\(feat| feat)\.?|(\[ft|\(ft| ft)\.?)`)
 	matchIndexes1 := re1.FindStringSubmatchIndex(songTitle)
 
-	re2 := regexp.MustCompile(`(?i)(?:(\[with|\(with)\.?)`)
+	re2 := regexp.MustCompile(`(?i)(?:(\[with|\(with|\(w/|\[w/| w/)\.?)`)
 	matchIndexes2 := re2.FindStringSubmatchIndex(songTitle)
 
 	if len(matchIndexes1) != 0 && len(matchIndexes2) != 0 {
