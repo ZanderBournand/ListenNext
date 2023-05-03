@@ -16,23 +16,28 @@ import (
 )
 
 const (
-	base_url    = "https://www.albumoftheyear.org"
-	fetch_url   = "https://www.albumoftheyear.org/scripts/showMore.php"
-	credits_url = "https://www.albumoftheyear.org/scripts/showAlbumCredits.php"
+	base_url          = "https://www.albumoftheyear.org"
+	fetch_url         = "https://www.albumoftheyear.org/scripts/showMore.php"
+	credits_url       = "https://www.albumoftheyear.org/scripts/showAlbumCredits.php"
+	parseDateFormat   = "Jan 2 2006"
+	requestDateFormat = "2006-01"
 )
 
 type Release struct {
-	Artists    []string `json:"artists"`
-	Featurings []string `json:"featurings"`
-	Title      string   `json:"title"`
-	Date       string   `json:"date"`
-	Cover      string   `json:"cover"`
-	Genres     []string `json:"genres"`
-	Producers  []string `json:"producers"`
-	Tracklist  []string `json:"tracklist"`
+	Artists    []string  `json:"artists"`
+	Featurings []string  `json:"featurings"`
+	Title      string    `json:"title"`
+	Date       time.Time `json:"date"`
+	Cover      string    `json:"cover"`
+	Genres     []string  `json:"genres"`
+	Producers  []string  `json:"producers"`
+	Tracklist  []string  `json:"tracklist"`
 }
 
-func main() {
+func Releases() [][]Release {
+	startDate := time.Now()
+	endDate := startDate.AddDate(0, 3, 0)
+
 	releaseTypes := []string{"lp", "ep", "single", "mixtape", "reissue"}
 	allReleases := make([][]Release, len(releaseTypes))
 
@@ -41,9 +46,21 @@ func main() {
 
 	for i, releaseType := range releaseTypes {
 		fmt.Println("Fetching " + releaseType + "s...")
+
+		requestDate := startDate.Format(requestDateFormat)
+		limitRequestDate := endDate.Format(requestDateFormat)
+
 		go func(i int, releaseType string) {
 			defer wg.Done()
-			getReleases("2023-04", 0, &allReleases[i], releaseType)
+
+			for requestDate <= limitRequestDate {
+				getReleases(requestDate, startDate, endDate, 0, &allReleases[i], releaseType)
+
+				t, _ := time.Parse(requestDateFormat, requestDate)
+				t = t.AddDate(0, 1, 0)
+				requestDate = t.Format(requestDateFormat)
+			}
+
 		}(i, releaseType)
 	}
 
@@ -52,15 +69,19 @@ func main() {
 	for i, releaseType := range releaseTypes {
 		fmt.Println(releaseType, "count:", len(allReleases[i]))
 	}
+
+	return allReleases
 }
 
-func getReleases(date string, start int, allReleases *[]Release, releaseType string) {
+func getReleases(requestDate string, startDate time.Time, endDate time.Time, start int, allReleases *[]Release, releaseType string) {
+	year := requestDate[:4]
+
 	data := map[string]string{
 		"type":      "albumMonth",
 		"sort":      "release",
 		"albumType": releaseType,
 		"start":     fmt.Sprintf("%v", start),
-		"date":      date,
+		"date":      requestDate,
 		"genre":     "",
 		"reviews":   "",
 	}
@@ -88,7 +109,9 @@ func getReleases(date string, start int, allReleases *[]Release, releaseType str
 	})
 
 	c.OnHTML("div.albumBlock", func(e *colly.HTMLElement) {
-		date := e.ChildText("div.date")
+		date := e.ChildText("div.date") + " " + year
+		parsedDate, parseErr := time.Parse(parseDateFormat, date)
+
 		cover := e.ChildAttr("img.lazyload", "data-src")
 		link := e.DOM.Find("div.albumTitle").Parent().AttrOr("href", "")
 		title := e.ChildText("div.albumTitle")
@@ -97,18 +120,20 @@ func getReleases(date string, start int, allReleases *[]Release, releaseType str
 			Artists:    []string{},
 			Featurings: []string{},
 			Title:      title,
-			Date:       date,
+			Date:       parsedDate,
 			Cover:      cover,
 			Genres:     []string{},
 			Producers:  []string{},
 		}
 
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			getDetails(link, &release)
-			*allReleases = append(*allReleases, release)
-		}()
+		if parseErr == nil && parsedDate.After(startDate) && parsedDate.Before(endDate) {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				getDetails(link, &release)
+				*allReleases = append(*allReleases, release)
+			}()
+		}
 
 		count++
 
