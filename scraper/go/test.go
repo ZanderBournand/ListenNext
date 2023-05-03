@@ -158,8 +158,9 @@ func getDetails(link string, details *Release) {
 		})
 	})
 
-	c1.OnHTML("a[itemprop=genre]", func(e *colly.HTMLElement) {
-		details.Genres = append(details.Genres, e.Text)
+	c1.OnHTML(`meta[itemprop="genre"]`, func(e *colly.HTMLElement) {
+		genre := e.Attr("content")
+		details.Genres = append(details.Genres, genre)
 	})
 
 	c1.OnHTML(".trackList ol li", func(e *colly.HTMLElement) {
