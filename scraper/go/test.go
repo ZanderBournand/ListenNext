@@ -9,6 +9,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode"
 
 	"github.com/caffix/cloudflare-roundtripper/cfrt"
 	"github.com/gocolly/colly"
@@ -125,44 +126,6 @@ func getReleases(date string, start int, allReleases *[]Release, releaseType str
 	wg.Wait()
 }
 
-func splitString(str string, separators []string) []string {
-	if len(separators) == 0 {
-		return []string{str}
-	}
-	sep := separators[0]
-	parts := strings.Split(str, sep)
-	result := []string{}
-	for _, part := range parts {
-		result = append(result, splitString(part, separators[1:])...)
-	}
-	return result
-}
-
-func getFeaturedArtists(songTitle string) []string {
-
-	re := regexp.MustCompile(`(?i)(?:(\[with|\(with)\.?|(\[featuring|\(featuring| featuring)\.?|(\[feat|\(feat| feat)\.?|(\[ft|\(ft| ft)\.?)[^\p{L}\d&',.?%^@#*=+~"$:;<>|/\\’!\d-]*([\p{L}\d&',.?%^@#*=+~"$:;<>|/\\’!\d-]+(?:\s+[\p{L}\d&',.?%^@#*=+~"$:;<>|/\\’!\d-]+)*)`)
-	matches := re.FindAllStringSubmatch(songTitle, -1)
-	if len(matches) == 0 {
-		return []string{}
-	}
-
-	featuredArtists := []string{}
-
-	for _, match := range matches {
-		artist := match[len(match)-1]
-		separators := []string{"& ", ", ", "/ ", "\\ ", "feat. ", "ft. "}
-		parts := splitString(artist, separators)
-		for _, part := range parts {
-			part = strings.TrimSpace(part)
-			if part != "" && part != " " && part != "." {
-				featuredArtists = append(featuredArtists, part)
-			}
-		}
-	}
-
-	return featuredArtists
-}
-
 func getDetails(link string, details *Release) {
 	id := strings.Split(strings.Split(link, "/")[2], "-")[0]
 
@@ -201,10 +164,16 @@ func getDetails(link string, details *Release) {
 
 	c1.OnHTML(".trackList ol li", func(e *colly.HTMLElement) {
 		trackTitle := strings.TrimSpace(e.Text)
-		featuredArtists := getFeaturedArtists(trackTitle)
-
 		details.Tracklist = append(details.Tracklist, trackTitle)
-		details.Featurings = append(details.Featurings, featuredArtists...)
+
+		titleContributors := parseTitle(trackTitle)
+
+		if len(titleContributors[0]) > 0 {
+			checkAddDuplicates(titleContributors[0], &details.Producers)
+		}
+		if len(titleContributors[1]) > 0 {
+			checkAddDuplicates(titleContributors[1], &details.Featurings)
+		}
 	})
 
 	c1.OnHTML("td.trackTitle", func(e *colly.HTMLElement) {
@@ -240,8 +209,227 @@ func getDetails(link string, details *Release) {
 		fmt.Println("ERROR:", r.StatusCode)
 	})
 
-	c1.Visit(base_url + link)
 	c1.Post(credits_url, data)
+	c1.Visit(base_url + link)
 
 	c1.Wait()
+}
+
+func checkAddDuplicates(candidates []string, contributors *[]string) {
+	for _, name := range candidates {
+		name = strings.ToLower(name)
+		name = strings.Map(func(r rune) rune {
+			if unicode.IsLetter(r) || unicode.IsDigit(r) {
+				return r
+			}
+			return -1
+		}, name)
+
+		found := false
+		for _, contributor := range *contributors {
+			contributor = strings.ToLower(contributor)
+			contributor = strings.Map(func(r rune) rune {
+				if unicode.IsLetter(r) || unicode.IsDigit(r) {
+					return r
+				}
+				return -1
+			}, contributor)
+
+			if strings.EqualFold(name, contributor) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			*contributors = append(*contributors, name)
+		}
+	}
+}
+
+func parseTitle(songTitle string) [][]string {
+	titleProducers := []string{}
+	titleFeaturedArtists := []string{}
+
+	songTitle = getTitleProducers(&songTitle, &titleProducers)
+
+	re1 := regexp.MustCompile(`(?i)(?:(\[featuring|\(featuring| featuring)\.?|(\[feat|\(feat| feat)\.?|(\[ft|\(ft| ft)\.?)`)
+	matchIndexes1 := re1.FindStringSubmatchIndex(songTitle)
+
+	re2 := regexp.MustCompile(`(?i)(?:(\[with|\(with)\.?)`)
+	matchIndexes2 := re2.FindStringSubmatchIndex(songTitle)
+
+	if len(matchIndexes1) != 0 && len(matchIndexes2) != 0 {
+		if matchIndexes1[0] < matchIndexes2[0] {
+			songTitle = getCoArtists(&songTitle, &titleFeaturedArtists, matchIndexes2)
+			songTitle = getFeaturedArtists(&songTitle, &titleFeaturedArtists, matchIndexes1)
+		} else {
+			songTitle = getFeaturedArtists(&songTitle, &titleFeaturedArtists, matchIndexes1)
+			songTitle = getCoArtists(&songTitle, &titleFeaturedArtists, matchIndexes2)
+		}
+	} else if len(matchIndexes1) != 0 {
+		songTitle = getFeaturedArtists(&songTitle, &titleFeaturedArtists, matchIndexes1)
+	} else if len(matchIndexes2) != 0 {
+		songTitle = getCoArtists(&songTitle, &titleFeaturedArtists, matchIndexes2)
+	}
+
+	return [][]string{titleProducers, titleFeaturedArtists}
+}
+
+func getFeaturedArtists(songTitle *string, titleFeaturedArtists *[]string, matches []int) string {
+	start := matches[0]
+	end := matches[1]
+	prodSubstring := ""
+	if (*songTitle)[start] == '(' || (*songTitle)[start] == '[' {
+		prodSubstring = cleanTitleSection((*songTitle)[start:])
+		if (prodSubstring[0] == '(' && prodSubstring[len(prodSubstring)-1] == ')') || (prodSubstring[0] == '[' && prodSubstring[len(prodSubstring)-1] == ']') {
+			prodSubstring = prodSubstring[(end - start) : len(prodSubstring)-1]
+		}
+	} else {
+		prodSubstring = (*songTitle)[end:]
+	}
+	parseContributors(prodSubstring, titleFeaturedArtists)
+
+	*songTitle = (*songTitle)[:start]
+
+	return *songTitle
+}
+
+func getCoArtists(songTitle *string, titleFeaturedArtists *[]string, matches []int) string {
+	start := matches[0]
+	end := matches[1]
+	prodSubstring := ""
+	if (*songTitle)[start] == '(' || (*songTitle)[start] == '[' {
+		prodSubstring = cleanTitleSection((*songTitle)[start:])
+		if (prodSubstring[0] == '(' && prodSubstring[len(prodSubstring)-1] == ')') || (prodSubstring[0] == '[' && prodSubstring[len(prodSubstring)-1] == ']') {
+			prodSubstring = prodSubstring[(end - start) : len(prodSubstring)-1]
+		} else {
+			prodSubstring = prodSubstring[(end - start):]
+		}
+	} else {
+		prodSubstring = (*songTitle)[end:]
+	}
+	parseContributors(prodSubstring, titleFeaturedArtists)
+
+	*songTitle = (*songTitle)[:start]
+
+	return *songTitle
+}
+
+func getTitleProducers(songTitle *string, titleProducers *[]string) string {
+	re := regexp.MustCompile(`(?i)(?:(\[prod. by|\(prod. by| prod. by|\[prod by|\(prod by| prod by|\[prod.|\(prod.| prod.|\[prod|\(prod| prod))`)
+	matchesIndexes := re.FindAllStringSubmatchIndex(*songTitle, -1)
+
+	if len(matchesIndexes) == 0 {
+		return *songTitle
+	}
+
+	for _, match := range matchesIndexes {
+		start := match[len(match)-2]
+		end := match[len(match)-1]
+		prodSubstring := ""
+		if (*songTitle)[start] == '(' || (*songTitle)[start] == '[' {
+			prodSubstring = cleanTitleSection((*songTitle)[start:])
+			if (prodSubstring[0] == '(' && prodSubstring[len(prodSubstring)-1] == ')') || (prodSubstring[0] == '[' && prodSubstring[len(prodSubstring)-1] == ']') {
+				prodSubstring = prodSubstring[(end - start) : len(prodSubstring)-1]
+			}
+		} else {
+			prodSubstring = (*songTitle)[end:]
+		}
+		parseContributors(prodSubstring, titleProducers)
+	}
+
+	*songTitle = (*songTitle)[:matchesIndexes[0][0]]
+
+	return *songTitle
+}
+
+func parseContributors(titleSection string, contributors *[]string) {
+	separators := []string{"& ", ", ", "/ ", "\\ ", "feat. ", "ft. "}
+	parts := splitString(titleSection, separators)
+	for _, part := range parts {
+		part = strings.TrimSpace(part)
+		if part != "" && part != " " && part != "." {
+			part = cleanContributorName(part)
+			*contributors = append(*contributors, part)
+		}
+	}
+}
+
+func splitString(str string, separators []string) []string {
+	if len(separators) == 0 {
+		return []string{str}
+	}
+	sep := separators[0]
+	parts := strings.Split(str, sep)
+	result := []string{}
+	for _, part := range parts {
+		result = append(result, splitString(part, separators[1:])...)
+	}
+	return result
+}
+
+func cleanTitleSection(str string) string {
+	parenCount := 0
+	bracketCount := 0
+	m := len(str) - 1
+
+	for i, c := range str {
+		switch c {
+		case '(':
+			parenCount++
+		case ')':
+			parenCount--
+		case '[':
+			bracketCount++
+		case ']':
+			bracketCount--
+		}
+
+		if parenCount == 0 && bracketCount == 0 {
+			m = i
+			break
+		}
+	}
+
+	prodSubstring := str[:m+1]
+
+	return prodSubstring
+}
+
+func cleanContributorName(str string) string {
+
+	lastChar := str[len(str)-1]
+
+	if lastChar == ')' || lastChar == ']' {
+		var charOpen rune
+		var charClose rune
+
+		if lastChar == ')' {
+			charOpen = '('
+			charClose = ')'
+		} else {
+			charOpen = '['
+			charClose = ']'
+		}
+
+		count := 0
+
+		for _, c := range str {
+			switch c {
+			case charOpen:
+				count++
+			case charClose:
+				count--
+			}
+		}
+
+		if count < 0 {
+			str = str[:len(str)-1]
+		}
+
+	} else if lastChar == ',' {
+		str = str[:len(str)-1]
+	}
+
+	return str
 }
