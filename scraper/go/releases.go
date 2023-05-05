@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -24,6 +25,7 @@ const (
 )
 
 type Release struct {
+	AOTY_Id    string    `json:"aoty_id"`
 	Artists    []string  `json:"artists"`
 	Featurings []string  `json:"featurings"`
 	Title      string    `json:"title"`
@@ -34,12 +36,16 @@ type Release struct {
 	Tracklist  []string  `json:"tracklist"`
 }
 
-func Releases() [][]Release {
+func Releases() map[string][]Release {
 	startDate := time.Now()
 	endDate := startDate.AddDate(0, 3, 0)
 
 	releaseTypes := []string{"lp", "ep", "single", "mixtape", "reissue"}
-	allReleases := make([][]Release, len(releaseTypes))
+	allReleases := make(map[string][]Release)
+
+	for _, releaseType := range releaseTypes {
+		allReleases[releaseType] = []Release{}
+	}
 
 	var wg sync.WaitGroup
 	wg.Add(len(releaseTypes))
@@ -54,7 +60,9 @@ func Releases() [][]Release {
 			defer wg.Done()
 
 			for requestDate <= limitRequestDate {
-				getReleases(requestDate, startDate, endDate, 0, &allReleases[i], releaseType)
+				releases := allReleases[releaseType]
+				getReleases(requestDate, startDate, endDate, 0, &releases, releaseType)
+				allReleases[releaseType] = releases
 
 				t, _ := time.Parse(requestDateFormat, requestDate)
 				t = t.AddDate(0, 1, 0)
@@ -66,9 +74,13 @@ func Releases() [][]Release {
 
 	wg.Wait()
 
-	for i, releaseType := range releaseTypes {
-		fmt.Println(releaseType, "count:", len(allReleases[i]))
+	fmt.Println("----------------------------")
+	fmt.Println("----------------------------")
+	for _, releaseType := range releaseTypes {
+		fmt.Println(releaseType, "count:", len(allReleases[releaseType]))
 	}
+	fmt.Println("----------------------------")
+	fmt.Println("----------------------------")
 
 	return allReleases
 }
@@ -112,11 +124,14 @@ func getReleases(requestDate string, startDate time.Time, endDate time.Time, sta
 		date := e.ChildText("div.date") + " " + year
 		parsedDate, parseErr := time.Parse(parseDateFormat, date)
 
-		cover := e.ChildAttr("img.lazyload", "data-src")
 		link := e.DOM.Find("div.albumTitle").Parent().AttrOr("href", "")
+		aoty_id, idErr := extractReleaseID(link)
+
+		cover := e.ChildAttr("img.lazyload", "data-src")
 		title := e.ChildText("div.albumTitle")
 
 		release := Release{
+			AOTY_Id:    aoty_id,
 			Artists:    []string{},
 			Featurings: []string{},
 			Title:      title,
@@ -126,7 +141,7 @@ func getReleases(requestDate string, startDate time.Time, endDate time.Time, sta
 			Producers:  []string{},
 		}
 
-		if parseErr == nil && parsedDate.After(startDate) && parsedDate.Before(endDate) {
+		if parseErr == nil && idErr == nil && parsedDate.After(startDate) && parsedDate.Before(endDate) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -149,6 +164,18 @@ func getReleases(requestDate string, startDate time.Time, endDate time.Time, sta
 	c.Post(fetch_url, data)
 	c.Wait()
 	wg.Wait()
+}
+
+func extractReleaseID(url string) (string, error) {
+	start := strings.Index(url, "/album/") + 7
+	if start == -1 {
+		return "", errors.New("invalid URL")
+	}
+	end := strings.Index(url[start:], "-") + start
+	if end == -1 {
+		return "", errors.New("invalid URL")
+	}
+	return url[start:end], nil
 }
 
 func getDetails(link string, details *Release) {
