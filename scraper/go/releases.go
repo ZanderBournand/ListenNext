@@ -305,10 +305,10 @@ func parseTitle(songTitle string) [][]string {
 
 	songTitle = getTitleProducers(&songTitle, &titleProducers)
 
-	re1 := regexp.MustCompile(`(?i)(?:(\[featuring|\(featuring| featuring)\.?|(\[feat|\(feat| feat)\.?|(\[ft|\(ft| ft)\.?)`)
+	re1 := regexp.MustCompile(`(?i)(?:(\[featuring|\(featuring|\s+featuring)\.?\s|(\[feat|\(feat|\s+feat)\.?\s|(\[ft|\(ft|\s+ft)\.?\s)`)
 	matchIndexes1 := re1.FindStringSubmatchIndex(songTitle)
 
-	re2 := regexp.MustCompile(`(?i)(?:(\[with|\(with|\(w/|\[w/| w/)\.?)`)
+	re2 := regexp.MustCompile(`(?i)(?:(\[with|\(with|\(w/|\[w/|\s+w/\s)\.?)`)
 	matchIndexes2 := re2.FindStringSubmatchIndex(songTitle)
 
 	if len(matchIndexes1) != 0 && len(matchIndexes2) != 0 {
@@ -369,7 +369,7 @@ func getCoArtists(songTitle *string, titleFeaturedArtists *[]string, matches []i
 }
 
 func getTitleProducers(songTitle *string, titleProducers *[]string) string {
-	re := regexp.MustCompile(`(?i)(?:(\[prod. by|\(prod. by| prod. by|\[prod by|\(prod by| prod by|\[prod.|\(prod.| prod.|\[prod|\(prod| prod))`)
+	re := regexp.MustCompile(`(?i)(?:(\[prod. by|\(prod. by|\s+prod. by|\[prod by|\(prod by|\s+prod by|\[prod.|\(prod.|\s+prod.|\[prod|\(prod|\s+prod\s))`)
 	matchesIndexes := re.FindAllStringSubmatchIndex(*songTitle, -1)
 
 	if len(matchesIndexes) == 0 {
