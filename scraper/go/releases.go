@@ -37,8 +37,9 @@ type Release struct {
 }
 
 func Releases() map[string][]Release {
-	startDate := time.Now()
-	endDate := startDate.AddDate(0, 3, 0)
+	now := time.Now()
+	startDate := now.AddDate(0, 0, -14)
+	endDate := now.AddDate(0, 3, 0)
 
 	releaseTypes := []string{"lp", "ep", "single", "mixtape", "reissue"}
 	allReleases := make(map[string][]Release)
@@ -141,7 +142,7 @@ func getReleases(requestDate string, startDate time.Time, endDate time.Time, sta
 			Producers:  []string{},
 		}
 
-		if parseErr == nil && idErr == nil && parsedDate.After(startDate) && parsedDate.Before(endDate) {
+		if parseErr == nil && idErr == nil && !parsedDate.Before(startDate) && !parsedDate.After(endDate) {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -398,7 +399,7 @@ func getTitleProducers(songTitle *string, titleProducers *[]string) string {
 
 func parseContributors(titleSection string, contributors *[]string) {
 	separators := []string{"& ", ", ", "/ ", "\\ ", "feat. ", "ft. "}
-	parts := splitString(titleSection, separators)
+	parts := SplitString(titleSection, separators)
 	for _, part := range parts {
 		part = strings.TrimSpace(part)
 		if part != "" && part != " " && part != "." {
@@ -408,7 +409,7 @@ func parseContributors(titleSection string, contributors *[]string) {
 	}
 }
 
-func splitString(str string, separators []string) []string {
+func SplitString(str string, separators []string) []string {
 	if len(separators) == 0 {
 		return []string{str}
 	}
@@ -416,7 +417,7 @@ func splitString(str string, separators []string) []string {
 	parts := strings.Split(str, sep)
 	result := []string{}
 	for _, part := range parts {
-		result = append(result, splitString(part, separators[1:])...)
+		result = append(result, SplitString(part, separators[1:])...)
 	}
 	return result
 }

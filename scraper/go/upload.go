@@ -4,16 +4,22 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"log"
+	"math/rand"
+	"net"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/caffix/cloudflare-roundtripper/cfrt"
+	"github.com/gocolly/colly"
 	"github.com/lib/pq"
 )
 
-func Upload(releases map[string][]Release, spotifyAuthToken string, db *sql.DB) {
+func Upload(releases map[string][]Release, mode string, spotifyAuthTokens []string, db *sql.DB) {
 	updateTime := time.Now()
 
 	semaphore := make(chan struct{}, 50)
@@ -32,7 +38,7 @@ func Upload(releases map[string][]Release, spotifyAuthToken string, db *sql.DB) 
 				}()
 				releaseId, err := AddOrUpdateRelease(releaseType, release, db, updateTime)
 				if err == nil {
-					AddOrUpdateArtists(releaseId, release, spotifyAuthToken, db)
+					AddOrUpdateArtists(releaseId, release, mode, spotifyAuthTokens, db)
 					AddOrUpdateProducers(releaseId, release, db)
 					AddOrUpdateGenres(releaseId, release, db)
 				}
@@ -47,6 +53,8 @@ func Upload(releases map[string][]Release, spotifyAuthToken string, db *sql.DB) 
 	_, err := db.Exec("DELETE FROM Releases WHERE updated!=$1", updateTime)
 	if err == nil {
 		fmt.Println("Old releases purged!")
+		fmt.Println("----------------------------")
+		fmt.Println("----------------------------")
 	}
 }
 
@@ -78,11 +86,17 @@ func AddOrUpdateRelease(releaseType string, release Release, db *sql.DB, updateT
 
 }
 
-func AddOrUpdateArtists(releaseId int64, release Release, spotifyAuthToken string, db *sql.DB) {
+func AddOrUpdateArtists(releaseId int64, release Release, mode string, spotifyAuthTokens []string, db *sql.DB) {
+
+	artitstsPopularity := PopularityAverage{}
+	featuresPopularity := PopularityAverage{}
 
 	for _, artist := range release.Artists {
-		artistId, err := uploadArtist(artist, spotifyAuthToken, db)
+		artistId, popularity, err := uploadArtist(artist, mode, spotifyAuthTokens, db)
 		if err == nil {
+			if popularity != -1 {
+				artitstsPopularity.AddValue(popularity)
+			}
 			_, err := db.Exec("INSERT INTO releases_artists (release_id, artist_id, relationship) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING", releaseId, artistId, "main")
 			if err != nil {
 				fmt.Println(release)
@@ -92,8 +106,11 @@ func AddOrUpdateArtists(releaseId int64, release Release, spotifyAuthToken strin
 	}
 
 	for _, featuredArtists := range release.Featurings {
-		artistId, err := uploadArtist(featuredArtists, spotifyAuthToken, db)
+		artistId, popularity, err := uploadArtist(featuredArtists, mode, spotifyAuthTokens, db)
 		if err == nil {
+			if popularity != -1 {
+				featuresPopularity.AddValue(popularity)
+			}
 			_, err := db.Exec("INSERT INTO releases_artists (release_id, artist_id, relationship) VALUES ($1, $2, $3) ON CONFLICT DO NOTHING", releaseId, artistId, "feature")
 			if err != nil {
 				fmt.Println(release)
@@ -101,12 +118,40 @@ func AddOrUpdateArtists(releaseId int64, release Release, spotifyAuthToken strin
 			}
 		}
 	}
+
+	artistsAverage := artitstsPopularity.GetAverage()
+	featuresAverage := featuresPopularity.GetAverage()
+	var trending_score float64
+
+	if artistsAverage > 0 && featuresAverage > 0 {
+		trending_score = (artistsAverage * 0.75) + (featuresAverage * 0.25)
+	} else if artistsAverage > 0 {
+		trending_score = artistsAverage
+	}
+
+	if trending_score != 0.0 {
+		_, err := db.Exec("UPDATE Releases SET trending_score=$1 WHERE id=$2",
+			trending_score, releaseId)
+		if err != nil {
+			fmt.Println("Error adding trending score to release")
+		}
+	}
 }
 
-func uploadArtist(artist string, spotifyAuthToken string, db *sql.DB) (int64, error) {
+func uploadArtist(artist string, mode string, spotifyAuthTokens []string, db *sql.DB) (int64, int, error) {
 	compareName := strings.ToLower(strings.ReplaceAll(artist, " ", ""))
 
-	spotifyName, spotifyId, popularity, genres, err := spotifySearch(artist, spotifyAuthToken)
+	var spotifyName string
+	var spotifyId string
+	var popularity int
+	var genres []string
+	var err error
+
+	if mode == "spotify" {
+		spotifyName, spotifyId, popularity, genres, err = spotifySearch(artist, spotifyAuthTokens)
+	} else if mode == "scrape" {
+		spotifyName, spotifyId, popularity, genres, err = spotifyScrapedSearch(artist)
+	}
 	if err == nil {
 		var id int64
 		err := db.QueryRow("SELECT id FROM Artists WHERE name=$1 AND spotify_id=$2", spotifyName, spotifyId).Scan(&id)
@@ -115,20 +160,20 @@ func uploadArtist(artist string, spotifyAuthToken string, db *sql.DB) (int64, er
 				popularity, spotifyName, spotifyId)
 			if err == nil {
 				AddOrUpdateArtistGenres(id, genres, db)
-				return id, nil
+				return id, popularity, nil
 			}
-			return -1, fmt.Errorf("error updating artist w/ spotify")
+			return -1, -1, fmt.Errorf("error updating artist w/ spotify")
 		} else if err == sql.ErrNoRows {
 			var newID int64
 			err = db.QueryRow("INSERT INTO Artists(name, spotify_id, popularity, compare_name) VALUES($1, $2, $3, $4) RETURNING id",
 				spotifyName, spotifyId, popularity, compareName).Scan(&newID)
 			if err == nil {
 				AddOrUpdateArtistGenres(newID, genres, db)
-				return newID, nil
+				return newID, popularity, nil
 			}
-			return -1, fmt.Errorf("error inserting artist w/ spotify")
+			return -1, -1, fmt.Errorf("error inserting artist w/ spotify")
 		} else {
-			return -1, fmt.Errorf("error querying artist w/ spotify")
+			return -1, -1, fmt.Errorf("error querying artist w/ spotify")
 		}
 	} else {
 		compareName := strings.ToLower(strings.ReplaceAll(artist, " ", ""))
@@ -136,36 +181,40 @@ func uploadArtist(artist string, spotifyAuthToken string, db *sql.DB) (int64, er
 		var id int64
 		err := db.QueryRow("SELECT id FROM Artists WHERE compare_name=$1", compareName).Scan(&id)
 		if err == nil {
-			return id, nil
+			return id, -1, nil
 		} else if err == sql.ErrNoRows {
 			var newID int64
 			err = db.QueryRow("INSERT INTO Artists(name, compare_name) VALUES($1, $2) RETURNING id",
 				artist, compareName).Scan(&newID)
 			if err == nil {
-				return newID, nil
+				return newID, -1, nil
 			}
-			return -1, fmt.Errorf("error inserting artist")
+			return -1, -1, fmt.Errorf("error inserting artist")
 		} else {
-			return -1, fmt.Errorf("error querying artist")
+			return -1, -1, fmt.Errorf("error querying artist")
 		}
 	}
 }
 
-func spotifySearch(artist string, spotifyAuthToken string) (string, string, int, []string, error) {
+func spotifySearch(artist string, spotifyAuthTokens []string) (string, string, int, []string, error) {
 	compareName := strings.ToLower(strings.ReplaceAll(artist, " ", ""))
 
 	spotifyURL := fmt.Sprintf("https://api.spotify.com/v1/search?type=artist&q=%s", url.QueryEscape(artist))
+
+	rand.Seed(time.Now().UnixNano())
+	tokenIndex := rand.Intn(len(spotifyAuthTokens))
 
 	req, err := http.NewRequest("GET", spotifyURL, nil)
 	if err != nil {
 		return "", "", -1, nil, err
 	}
-	req.Header.Set("Authorization", "Bearer "+spotifyAuthToken)
+	req.Header.Set("Authorization", "Bearer "+spotifyAuthTokens[tokenIndex])
 
 	client := &http.Client{}
 	resp, err := client.Do(req)
-	if err != nil {
+	if err != nil || resp.StatusCode != 200 {
 		fmt.Println("SPOTIFY ERROR!!!!")
+		fmt.Println(resp.Header)
 		return "", "", -1, nil, err
 	}
 	defer resp.Body.Close()
@@ -189,6 +238,76 @@ func spotifySearch(artist string, spotifyAuthToken string) (string, string, int,
 	}
 
 	return "", "", -1, nil, fmt.Errorf("no matching artist found")
+}
+
+func spotifyScrapedSearch(artist string) (string, string, int, []string, error) {
+	compareName := strings.ToLower(strings.ReplaceAll(artist, " ", ""))
+	found := false
+
+	var name string
+	var spotifyId string
+	var popularity int
+	var genres []string
+
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+		Transport: &http.Transport{
+			DialContext: (&net.Dialer{
+				Timeout:   15 * time.Second,
+				KeepAlive: 15 * time.Second,
+				DualStack: true,
+			}).DialContext,
+		},
+	}
+	client.Transport, _ = cfrt.New(client.Transport)
+
+	c := colly.NewCollector()
+	c.WithTransport(client.Transport)
+
+	c.OnHTML("div.song-details.search-song-details", func(e *colly.HTMLElement) {
+		spotifyName := e.ChildText("h1.song-title u")
+		spotifyCompareName := strings.ToLower(strings.ReplaceAll(spotifyName, " ", ""))
+
+		if spotifyCompareName == compareName && !found {
+			found = true
+
+			name = spotifyName
+
+			href := e.ChildAttr("a:nth-of-type(1)", "href")
+			parts := strings.Split(href, "/")
+			spotifyId = parts[len(parts)-1]
+
+			c.Visit("https://musicstax.com/" + href)
+		}
+	})
+
+	c.OnHTML("div.song-details-right", func(e *colly.HTMLElement) {
+		allGenres := e.ChildText("[data-cy='artist-genres']")
+		separators := []string{", ", " & "}
+		genres = SplitString(allGenres, separators)
+
+		popularityStr := strings.TrimSpace(strings.Split(e.ChildText(`[data-cy="artist-followers"]`), "//")[1])
+		popularityParsed, err := strconv.Atoi(strings.TrimSuffix(popularityStr, "% popularity"))
+		if err != nil {
+			log.Println("Error parsing popularity:", err)
+			return
+		}
+		popularity = popularityParsed
+	})
+
+	c.OnError(func(r *colly.Response, err error) {
+		fmt.Println("ERROR:", r.StatusCode)
+		fmt.Println(r.Headers)
+	})
+
+	c.Visit("https://musicstax.com/search?q=" + artist + "&view=artists")
+	c.Wait()
+
+	if found {
+		return name, spotifyId, popularity, genres, nil
+	} else {
+		return "", "", -1, nil, fmt.Errorf("no matching artist found")
+	}
 }
 
 func AddOrUpdateProducers(releaseId int64, release Release, db *sql.DB) {
@@ -258,4 +377,21 @@ func AddOrUpdateArtistGenres(artistId int64, genres []string, db *sql.DB) {
 		}
 	}
 
+}
+
+type PopularityAverage struct {
+	count int
+	sum   int
+}
+
+func (pa *PopularityAverage) AddValue(value int) {
+	pa.count++
+	pa.sum += value
+}
+
+func (pa *PopularityAverage) GetAverage() float64 {
+	if pa.count == 0 {
+		return 0
+	}
+	return float64(pa.sum) / float64(pa.count)
 }
