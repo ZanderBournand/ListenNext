@@ -1,10 +1,11 @@
-package main
+package db
 
 import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
 	"log"
+	"main/services"
 	"math/rand"
 	"net"
 	"net/http"
@@ -18,6 +19,18 @@ import (
 	"github.com/gocolly/colly"
 	"github.com/lib/pq"
 )
+
+type Release struct {
+	AOTY_Id    string    `json:"aoty_id"`
+	Artists    []string  `json:"artists"`
+	Featurings []string  `json:"featurings"`
+	Title      string    `json:"title"`
+	Date       time.Time `json:"date"`
+	Cover      string    `json:"cover"`
+	Genres     []string  `json:"genres"`
+	Producers  []string  `json:"producers"`
+	Tracklist  []string  `json:"tracklist"`
+}
 
 func Upload(releases map[string][]Release, mode string, spotifyAuthTokens []string, db *sql.DB) {
 	updateTime := time.Now()
@@ -284,7 +297,7 @@ func spotifyScrapedSearch(artist string) (string, string, int, []string, error) 
 	c.OnHTML("div.song-details-right", func(e *colly.HTMLElement) {
 		allGenres := e.ChildText("[data-cy='artist-genres']")
 		separators := []string{", ", " & "}
-		genres = SplitString(allGenres, separators)
+		genres = services.SplitString(allGenres, separators)
 
 		popularityStr := strings.TrimSpace(strings.Split(e.ChildText(`[data-cy="artist-followers"]`), "//")[1])
 		popularityParsed, err := strconv.Atoi(strings.TrimSuffix(popularityStr, "% popularity"))
