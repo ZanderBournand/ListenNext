@@ -32,7 +32,7 @@ type Release struct {
 	Tracklist  []string  `json:"tracklist"`
 }
 
-func Upload(releases map[string][]Release, mode string, spotifyAuthTokens []string, db *sql.DB) {
+func Upload(releases map[string][]Release, mode string, spotifyAuthTokens []string) {
 	updateTime := time.Now()
 
 	semaphore := make(chan struct{}, 50)
@@ -49,11 +49,11 @@ func Upload(releases map[string][]Release, mode string, spotifyAuthTokens []stri
 					wg.Done()
 					<-semaphore
 				}()
-				releaseId, err := AddOrUpdateRelease(releaseType, release, db, updateTime)
+				releaseId, err := AddOrUpdateRelease(releaseType, release, updateTime)
 				if err == nil {
-					AddOrUpdateArtists(releaseId, release, mode, spotifyAuthTokens, db)
-					AddOrUpdateProducers(releaseId, release, db)
-					AddOrUpdateGenres(releaseId, release, db)
+					AddOrUpdateArtists(releaseId, release, mode, spotifyAuthTokens)
+					AddOrUpdateProducers(releaseId, release)
+					AddOrUpdateGenres(releaseId, release)
 				}
 			}(releaseType, release)
 		}
@@ -71,7 +71,7 @@ func Upload(releases map[string][]Release, mode string, spotifyAuthTokens []stri
 	}
 }
 
-func AddOrUpdateRelease(releaseType string, release Release, db *sql.DB, updateTime time.Time) (int64, error) {
+func AddOrUpdateRelease(releaseType string, release Release, updateTime time.Time) (int64, error) {
 	var id int64
 	err := db.QueryRow("SELECT id FROM Releases WHERE aoty_id=$1", release.AOTY_Id).Scan(&id)
 	if err == nil {
@@ -99,13 +99,13 @@ func AddOrUpdateRelease(releaseType string, release Release, db *sql.DB, updateT
 
 }
 
-func AddOrUpdateArtists(releaseId int64, release Release, mode string, spotifyAuthTokens []string, db *sql.DB) {
+func AddOrUpdateArtists(releaseId int64, release Release, mode string, spotifyAuthTokens []string) {
 
 	artitstsPopularity := PopularityAverage{}
 	featuresPopularity := PopularityAverage{}
 
 	for _, artist := range release.Artists {
-		artistId, popularity, err := uploadArtist(artist, mode, spotifyAuthTokens, db)
+		artistId, popularity, err := uploadArtist(artist, mode, spotifyAuthTokens)
 		if err == nil {
 			if popularity != -1 {
 				artitstsPopularity.AddValue(popularity)
@@ -119,7 +119,7 @@ func AddOrUpdateArtists(releaseId int64, release Release, mode string, spotifyAu
 	}
 
 	for _, featuredArtists := range release.Featurings {
-		artistId, popularity, err := uploadArtist(featuredArtists, mode, spotifyAuthTokens, db)
+		artistId, popularity, err := uploadArtist(featuredArtists, mode, spotifyAuthTokens)
 		if err == nil {
 			if popularity != -1 {
 				featuresPopularity.AddValue(popularity)
@@ -151,7 +151,7 @@ func AddOrUpdateArtists(releaseId int64, release Release, mode string, spotifyAu
 	}
 }
 
-func uploadArtist(artist string, mode string, spotifyAuthTokens []string, db *sql.DB) (int64, int, error) {
+func uploadArtist(artist string, mode string, spotifyAuthTokens []string) (int64, int, error) {
 	compareName := strings.ToLower(strings.ReplaceAll(artist, " ", ""))
 
 	var spotifyName string
@@ -172,7 +172,7 @@ func uploadArtist(artist string, mode string, spotifyAuthTokens []string, db *sq
 			_, err = db.Exec("UPDATE Artists SET popularity=$1 WHERE name=$2 AND spotify_id=$3",
 				popularity, spotifyName, spotifyId)
 			if err == nil {
-				AddOrUpdateArtistGenres(id, genres, db)
+				AddOrUpdateArtistGenres(id, genres)
 				return id, popularity, nil
 			}
 			return -1, -1, fmt.Errorf("error updating artist w/ spotify")
@@ -181,7 +181,7 @@ func uploadArtist(artist string, mode string, spotifyAuthTokens []string, db *sq
 			err = db.QueryRow("INSERT INTO Artists(name, spotify_id, popularity, compare_name) VALUES($1, $2, $3, $4) RETURNING id",
 				spotifyName, spotifyId, popularity, compareName).Scan(&newID)
 			if err == nil {
-				AddOrUpdateArtistGenres(newID, genres, db)
+				AddOrUpdateArtistGenres(newID, genres)
 				return newID, popularity, nil
 			}
 			return -1, -1, fmt.Errorf("error inserting artist w/ spotify")
@@ -323,7 +323,7 @@ func spotifyScrapedSearch(artist string) (string, string, int, []string, error) 
 	}
 }
 
-func AddOrUpdateProducers(releaseId int64, release Release, db *sql.DB) {
+func AddOrUpdateProducers(releaseId int64, release Release) {
 
 	for _, producer := range release.Producers {
 		compareName := strings.ToLower(strings.ReplaceAll(producer, " ", ""))
@@ -346,7 +346,7 @@ func AddOrUpdateProducers(releaseId int64, release Release, db *sql.DB) {
 
 }
 
-func AddOrUpdateGenres(releaseId int64, release Release, db *sql.DB) {
+func AddOrUpdateGenres(releaseId int64, release Release) {
 
 	for _, genre := range release.Genres {
 		compareType := strings.ToLower(strings.ReplaceAll(genre, " ", ""))
@@ -369,7 +369,7 @@ func AddOrUpdateGenres(releaseId int64, release Release, db *sql.DB) {
 
 }
 
-func AddOrUpdateArtistGenres(artistId int64, genres []string, db *sql.DB) {
+func AddOrUpdateArtistGenres(artistId int64, genres []string) {
 
 	for _, genre := range genres {
 		compareType := strings.ToLower(strings.ReplaceAll(genre, " ", ""))

@@ -1,7 +1,6 @@
 package db
 
 import (
-	"database/sql"
 	"fmt"
 	"time"
 
@@ -23,7 +22,7 @@ type DisplayRelease struct {
 	TrendingScore float64
 }
 
-func getTrendings(releaseType string, direction string, reference int, period string, db *sql.DB) ([]DisplayRelease, bool, bool) {
+func GetTrendings(releaseType string, direction string, reference int, period string) ([]DisplayRelease, bool, bool) {
 	prev := false
 	next := false
 
@@ -72,7 +71,7 @@ func getTrendings(releaseType string, direction string, reference int, period st
 		}
 	}
 
-	count := releasesCount(releaseType, startDate, endDate, db)
+	count := releasesCount(releaseType, startDate, endDate)
 
 	query := `SELECT r.id, array_agg(DISTINCT a.name) AS artists, array_agg(DISTINCT COALESCE(ap.name, '')) AS featurings, r.title, r.date, r.cover, array_agg(DISTINCT COALESCE(g.type, '')) AS genres, array_agg(DISTINCT COALESCE(p.name, '')) AS producers, r.tracklist, r.type, r.aoty_id, r.trending_score
               FROM Releases r
@@ -148,7 +147,7 @@ func getTrendings(releaseType string, direction string, reference int, period st
 	return releases, prev, next
 }
 
-func releasesCount(releaseType string, startDate time.Time, endDate time.Time, db *sql.DB) int {
+func releasesCount(releaseType string, startDate time.Time, endDate time.Time) int {
 
 	var count int
 

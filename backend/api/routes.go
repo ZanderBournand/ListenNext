@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"fmt"
+	"main/db"
 	"main/services"
 	"net/http"
 
@@ -35,13 +36,20 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := config.Client(context.Background(), token)
-	artists, err := services.SpotifyUserArtistsTops(client)
+	artists, _, err := services.SpotifyUserTops(client)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	fmt.Println(artists)
+	artists, err = services.SpotifyRelatedArtists(client, artists)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	releases := db.GetRecommendations(artists)
+	fmt.Println("FOUND", len(releases), "NEW RECOMMENDATIONS!!!")
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {

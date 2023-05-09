@@ -95,21 +95,22 @@ func SpotifyGeneralToken() (string, error) {
 
 }
 
-func SpotifyUserArtistsTops(client *http.Client) ([]SpotifyArtist, error) {
+func SpotifyUserTops(client *http.Client) ([]SpotifyArtist, []SpotifyTrack, error) {
+	var spotifyArtists []SpotifyArtist
+	var spotifyTracks []SpotifyTrack
+
 	endpoint := "https://api.spotify.com/v1/me/top/artists?limit=10&time_range=short_term"
 	resp, err := client.Get(endpoint)
 	if err != nil {
-		return nil, fmt.Errorf("error making user tops request: %v", err)
+		return nil, nil, fmt.Errorf("error making user tops request: %v", err)
 	}
 	defer resp.Body.Close()
 
 	var data map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&data)
 	if err != nil {
-		return nil, fmt.Errorf("error decoding response: %v", err)
+		return nil, nil, fmt.Errorf("error decoding response: %v", err)
 	}
-
-	var spotifyArtists []SpotifyArtist
 
 	artists := data["items"].([]interface{})
 
@@ -127,9 +128,94 @@ func SpotifyUserArtistsTops(client *http.Client) ([]SpotifyArtist, error) {
 		spotifyArtists = append(spotifyArtists, spotifyArtist)
 	}
 
-	return spotifyArtists, nil
+	endpoint = "https://api.spotify.com/v1/me/top/tracks?limit=10&time_range=short_term"
+	resp, err = client.Get(endpoint)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error making user tops request: %v", err)
+	}
+	defer resp.Body.Close()
+
+	err = json.NewDecoder(resp.Body).Decode(&data)
+	if err != nil {
+		return nil, nil, fmt.Errorf("error decoding response: %v", err)
+	}
+
+	items := data["items"].([]interface{})
+
+	for _, item := range items {
+		var spotifyTrack SpotifyTrack
+		spotifyTrack.ID = item.(map[string]interface{})["id"].(string)
+
+		artists := item.(map[string]interface{})["artists"].([]interface{})
+
+		for _, artist := range artists {
+
+			var spotifyArtist SpotifyArtist
+
+			spotifyArtist.Name = artist.(map[string]interface{})["name"].(string)
+			spotifyArtist.ID = artist.(map[string]interface{})["id"].(string)
+
+			// call get artist spotify and fetch genres
+			endpoint := fmt.Sprintf("https://api.spotify.com/v1/artists/%s", spotifyArtist.ID)
+			resp, err := client.Get(endpoint)
+			if err != nil {
+				return nil, nil, fmt.Errorf("error making artist request: %v", err)
+			}
+			defer resp.Body.Close()
+
+			var artistData map[string]interface{}
+			err = json.NewDecoder(resp.Body).Decode(&artistData)
+			if err != nil {
+				return nil, nil, fmt.Errorf("error decoding artist response: %v", err)
+			}
+
+			genres := artistData["genres"].([]interface{})
+			for _, genre := range genres {
+				spotifyArtist.Genres = append(spotifyArtist.Genres, genre.(string))
+			}
+
+			spotifyArtists = append(spotifyArtists, spotifyArtist)
+
+		}
+
+		spotifyTracks = append(spotifyTracks, spotifyTrack)
+	}
+
+	return spotifyArtists, spotifyTracks, nil
 }
 
-// func SpotifyUserTracksTops(client *http.Client) []SpotifyTrack {
+func SpotifyRelatedArtists(client *http.Client, artists []SpotifyArtist) ([]SpotifyArtist, error) {
+	for _, artist := range artists {
+		endpoint := fmt.Sprintf("https://api.spotify.com/v1/artists/%s/related-artists", artist.ID)
 
-// }
+		resp, err := client.Get(endpoint)
+		if err != nil {
+			return nil, fmt.Errorf("error fetching related artists for %s: %v", artist.Name, err)
+		}
+		defer resp.Body.Close()
+
+		var data map[string]interface{}
+		err = json.NewDecoder(resp.Body).Decode(&data)
+		if err != nil {
+			return nil, fmt.Errorf("error decoding related artists response for %s: %v", artist.Name, err)
+		}
+
+		relatedArtistsData := data["artists"].([]interface{})
+
+		for _, relatedArtistData := range relatedArtistsData {
+			relatedArtist := SpotifyArtist{
+				Name: relatedArtistData.(map[string]interface{})["name"].(string),
+				ID:   relatedArtistData.(map[string]interface{})["id"].(string),
+			}
+			genres := make([]string, 0)
+			for _, genre := range relatedArtistData.(map[string]interface{})["genres"].([]interface{}) {
+				genres = append(genres, genre.(string))
+			}
+			relatedArtist.Genres = genres
+
+			artists = append(artists, relatedArtist)
+		}
+	}
+
+	return artists, nil
+}
