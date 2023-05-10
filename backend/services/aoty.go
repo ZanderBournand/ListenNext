@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"main/models"
 	"net"
 	"net/http"
 	"regexp"
@@ -24,36 +25,24 @@ const (
 	requestDateFormat = "2006-01"
 )
 
-type Release struct {
-	AOTY_Id    string    `json:"aoty_id"`
-	Artists    []string  `json:"artists"`
-	Featurings []string  `json:"featurings"`
-	Title      string    `json:"title"`
-	Date       time.Time `json:"date"`
-	Cover      string    `json:"cover"`
-	Genres     []string  `json:"genres"`
-	Producers  []string  `json:"producers"`
-	Tracklist  []string  `json:"tracklist"`
-}
-
-func Releases() map[string][]Release {
+func Releases() map[string][]models.Release {
 	now := time.Now()
 	startDate := now.AddDate(0, 0, -14)
 	endDate := now.AddDate(0, 3, 0)
 
 	releaseTypes := []string{"lp", "ep", "single", "mixtape", "reissue"}
-	allReleases := make(map[string][]Release)
+	allReleases := make(map[string][]models.Release)
 
 	for _, releaseType := range releaseTypes {
-		allReleases[releaseType] = []Release{}
+		allReleases[releaseType] = []models.Release{}
 	}
 
 	var wg sync.WaitGroup
 	wg.Add(len(releaseTypes))
 
-	for i, releaseType := range releaseTypes {
-		fmt.Println("Fetching " + releaseType + "s...")
+	fmt.Println("Fetching releases...")
 
+	for i, releaseType := range releaseTypes {
 		requestDate := startDate.Format(requestDateFormat)
 		limitRequestDate := endDate.Format(requestDateFormat)
 
@@ -75,18 +64,19 @@ func Releases() map[string][]Release {
 
 	wg.Wait()
 
-	fmt.Println("----------------------------")
-	fmt.Println("----------------------------")
-	for _, releaseType := range releaseTypes {
-		fmt.Println(releaseType, "count:", len(allReleases[releaseType]))
+	for i, releaseType := range releaseTypes {
+		fmt.Print(releaseType, " count: ", len(allReleases[releaseType]))
+		if i != len(releaseTypes)-1 {
+			fmt.Print(" / ")
+		} else {
+			fmt.Print("\n")
+		}
 	}
-	fmt.Println("----------------------------")
-	fmt.Println("----------------------------")
 
 	return allReleases
 }
 
-func getReleases(requestDate string, startDate time.Time, endDate time.Time, start int, allReleases *[]Release, releaseType string) {
+func getReleases(requestDate string, startDate time.Time, endDate time.Time, start int, allReleases *[]models.Release, releaseType string) {
 	year := requestDate[:4]
 
 	data := map[string]string{
@@ -131,7 +121,7 @@ func getReleases(requestDate string, startDate time.Time, endDate time.Time, sta
 		cover := e.ChildAttr("img.lazyload", "data-src")
 		title := e.ChildText("div.albumTitle")
 
-		release := Release{
+		release := models.Release{
 			AOTY_Id:    aoty_id,
 			Artists:    []string{},
 			Featurings: []string{},
@@ -179,7 +169,7 @@ func extractReleaseID(url string) (string, error) {
 	return url[start:end], nil
 }
 
-func getDetails(link string, details *Release) {
+func getDetails(link string, details *models.Release) {
 	id := strings.Split(strings.Split(link, "/")[2], "-")[0]
 
 	data := map[string]string{

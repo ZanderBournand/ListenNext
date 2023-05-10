@@ -1,19 +1,20 @@
 package main
 
+import (
+	"main/api"
+	"main/db"
+	"main/services"
+)
+
 func main() {
-	// db.Connect()
+	db.Connect()
 
-	// _, SpErr := services.SpotifyScrapeTokens()
-	// if SpErr != nil {
-	// 	fmt.Println(SpErr)
-	// 	return
-	// }
+	services.SpotifyScrapeTokens()
 
-	// api.Setup()
+	releases := services.Releases()
+	db.Upload(releases, "spotify")
 
-	// releases := Releases()
-
-	// db.Upload(releases, "spotify", tokens)
+	api.Setup()
 
 	// displayReleases, prev, next := db.GetTrendings("album", "next", 0, "past")
 }

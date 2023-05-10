@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"main/db"
-	"main/services"
 	"net/http"
 
 	"github.com/go-chi/chi"
@@ -34,22 +33,20 @@ func callbackHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to exchange token", http.StatusInternalServerError)
 		return
 	}
-
 	client := config.Client(context.Background(), token)
-	artists, _, err := services.SpotifyUserTops(client)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
 
-	artists, err = services.SpotifyRelatedArtists(client, artists)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	releases := db.GetRecommendations(artists)
+	releases := db.GetRecommendations(client, "week")
 	fmt.Println("FOUND", len(releases), "NEW RECOMMENDATIONS!!!")
+
+	fmt.Println("--------------------------------")
+	for _, release := range releases {
+		fmt.Print("Artists:", release.Artists)
+		fmt.Println("\nTitle:", release.Title)
+		fmt.Println("Date:", release.Date)
+		fmt.Println("Type:", release.Type)
+		fmt.Println("Trending Score:", release.TrendingScore)
+		fmt.Println("--------------------------------")
+	}
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {

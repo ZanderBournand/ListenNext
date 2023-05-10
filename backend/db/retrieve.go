@@ -2,27 +2,13 @@ package db
 
 import (
 	"fmt"
+	"main/models"
 	"time"
 
 	"github.com/lib/pq"
 )
 
-type DisplayRelease struct {
-	ID            int64
-	Title         string
-	Artists       []string
-	Featurings    []string
-	Date          time.Time
-	Cover         string
-	Genres        []string
-	Producers     []string
-	Tracklist     []string
-	Type          string
-	AOTYID        string
-	TrendingScore float64
-}
-
-func GetTrendings(releaseType string, direction string, reference int, period string) ([]DisplayRelease, bool, bool) {
+func GetTrendings(releaseType string, direction string, reference int, period string) ([]models.DisplayRelease, bool, bool) {
 	prev := false
 	next := false
 
@@ -102,14 +88,14 @@ func GetTrendings(releaseType string, direction string, reference int, period st
 	}
 	defer rows.Close()
 
-	var releases []DisplayRelease
+	var releases []models.DisplayRelease
 
 	batchSize := 0
 
 	for rows.Next() {
 		batchSize += 1
 
-		var release DisplayRelease
+		var release models.DisplayRelease
 		var artists, featurings, genres, producers []string
 
 		err := rows.Scan(&release.ID, pq.Array(&artists), pq.Array(&featurings), &release.Title, &release.Date, &release.Cover, pq.Array(&genres), pq.Array(&producers), pq.Array(&release.Tracklist), &release.Type, &release.AOTYID, &release.TrendingScore)

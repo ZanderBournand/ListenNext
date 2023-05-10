@@ -2,48 +2,72 @@ package db
 
 import (
 	"fmt"
+	"main/models"
 	"main/services"
+	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/lib/pq"
 )
 
-func GetRecommendations(artists []services.SpotifyArtist) []DisplayRelease {
+func GetRecommendations(client *http.Client, period string) []models.DisplayRelease {
 
-	artistIds := GetMatchingArtists(artists)
+	fmt.Println("Fetching recommendations...")
+	artists, tracks, err := services.SpotifyUserTops(client)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
 
-	releases, _ := GetMatchingReleases(artistIds, artists)
+	artists, err = services.SpotifyRecommendations(artists, tracks)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	artists, err = services.SpotifyRelatedArtists(artists)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	genres := services.TopGenres(artists)
+
+	artistIds := GetMatchingArtists(artists, genres)
+	releases, _ := GetMatchingReleases(artistIds, genres, period)
 
 	return releases
-
 }
 
-func GetMatchingArtists(artists []services.SpotifyArtist) []int {
+func GetMatchingArtists(artists []models.SpotifyArtist, genres []string) []int {
 	var ids []int
 
 	var allIDs []string
 	var allGenres []string
+
 	for _, artist := range artists {
 		allIDs = append(allIDs, "'"+artist.ID+"'")
-		for _, genre := range artist.Genres {
-			compareType := strings.ToLower(strings.ReplaceAll(genre, " ", ""))
-			allGenres = append(allGenres, "'"+compareType+"'")
-		}
+	}
+
+	for _, genre := range genres {
+		compareType := strings.ToLower(strings.ReplaceAll(genre, " ", ""))
+		allGenres = append(allGenres, "'"+compareType+"'")
 	}
 
 	query := `
-        SELECT id
-        FROM Artists
-        WHERE spotify_id IN (` + strings.Join(allIDs, ",") + `)
-            OR EXISTS (
-                SELECT 1
-                FROM Artists_Genres
-                JOIN Genres ON Artists_Genres.genre_id = Genres.id
-                WHERE Artists_Genres.artist_id = Artists.id
-                    AND Genres.compare_type IN (` + strings.Join(allGenres, ",") + `)
-            )
-    `
+	    SELECT id
+	    FROM Artists
+	    WHERE spotify_id IN (` + strings.Join(allIDs, ",") + `)
+	        OR EXISTS (
+	            SELECT 1
+	            FROM Artists_Genres
+	            JOIN Genres ON Artists_Genres.genre_id = Genres.id
+	            WHERE Artists_Genres.artist_id = Artists.id
+	                AND Genres.compare_type IN (` + strings.Join(allGenres, ",") + `)
+	        )
+	`
 
 	rows, err := db.Query(query)
 	if err != nil {
@@ -65,8 +89,43 @@ func GetMatchingArtists(artists []services.SpotifyArtist) []int {
 	return ids
 }
 
-func GetMatchingReleases(ids []int, artists []services.SpotifyArtist) ([]DisplayRelease, error) {
-	var releases []DisplayRelease
+func GetMatchingReleases(ids []int, genres []string, period string) ([]models.DisplayRelease, error) {
+	var releases []models.DisplayRelease
+
+	now := time.Now()
+	now = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+
+	startDate := now
+	endDate := now
+
+	if period == "past" {
+		startDate = startDate.AddDate(0, 0, -14)
+		daysUntilFriday := (5 - int(startDate.Weekday()) + 7) % 7
+		startDate = startDate.AddDate(0, 0, daysUntilFriday+1)
+		endDate = endDate.AddDate(0, 0, -7)
+		daysUntilFriday = (5 - int(endDate.Weekday()) + 7) % 7
+		endDate = endDate.AddDate(0, 0, daysUntilFriday)
+	} else if period == "week" {
+		startDate = startDate.AddDate(0, 0, -7)
+		daysUntilFriday := (5 - int(startDate.Weekday()) + 7) % 7
+		startDate = startDate.AddDate(0, 0, daysUntilFriday+1)
+		daysUntilFriday = (5 - int(endDate.Weekday()) + 7) % 7
+		endDate = endDate.AddDate(0, 0, daysUntilFriday)
+	} else if period == "month" {
+		startDate = startDate.AddDate(0, 0, -7)
+		daysUntilFriday := (5 - int(startDate.Weekday()) + 7) % 7
+		startDate = startDate.AddDate(0, 0, daysUntilFriday+1)
+		endDate = endDate.AddDate(0, 0, 28)
+		daysUntilFriday = (5 - int(endDate.Weekday()) + 7) % 7
+		endDate = endDate.AddDate(0, 0, daysUntilFriday)
+	} else if period == "extended" {
+		startDate = startDate.AddDate(0, 0, -7)
+		daysUntilFriday := (5 - int(startDate.Weekday()) + 7) % 7
+		startDate = startDate.AddDate(0, 0, daysUntilFriday+1)
+		endDate = endDate.AddDate(0, 0, 84)
+		daysUntilFriday = (5 - int(endDate.Weekday()) + 7) % 7
+		endDate = endDate.AddDate(0, 0, daysUntilFriday)
+	}
 
 	idStrings := make([]string, 0, len(ids))
 	for _, id := range ids {
@@ -74,11 +133,9 @@ func GetMatchingReleases(ids []int, artists []services.SpotifyArtist) ([]Display
 	}
 
 	var allGenres []string
-	for _, artist := range artists {
-		for _, genre := range artist.Genres {
-			compareType := strings.ToLower(strings.ReplaceAll(genre, " ", ""))
-			allGenres = append(allGenres, "'"+compareType+"'")
-		}
+	for _, genre := range genres {
+		compareType := strings.ToLower(strings.ReplaceAll(genre, " ", ""))
+		allGenres = append(allGenres, "'"+compareType+"'")
 	}
 
 	query := fmt.Sprintf(`
@@ -93,9 +150,12 @@ func GetMatchingReleases(ids []int, artists []services.SpotifyArtist) ([]Display
 		LEFT JOIN Releases_Genres rg ON r.id = rg.release_id
 		LEFT JOIN Genres g ON rg.genre_id = g.id
 		WHERE r.trending_score IS NOT NULL AND (a.id IN (%s) OR g.compare_type IN (%s))
-		GROUP BY r.id, r.title, r.date, r.cover, r.tracklist, r.type, r.aoty_id, r.trending_score
-		ORDER BY r.trending_score DESC
 	`, strings.Join(idStrings, ","), strings.Join(allGenres, ","))
+
+	query += fmt.Sprintf(" AND r.date >= '%s' AND r.date <= '%s'", startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))
+
+	query += ` GROUP BY r.id, r.title, r.date, r.cover, r.tracklist, r.type, r.aoty_id, r.trending_score
+	ORDER BY r.trending_score DESC`
 
 	rows, err := db.Query(query)
 	if err != nil {
@@ -104,12 +164,17 @@ func GetMatchingReleases(ids []int, artists []services.SpotifyArtist) ([]Display
 	defer rows.Close()
 
 	for rows.Next() {
-		var release DisplayRelease
+		var release models.DisplayRelease
 		var artists, featurings, genres, producers []string
 
 		if err := rows.Scan(&release.ID, pq.Array(&artists), pq.Array(&featurings), &release.Title, &release.Date, &release.Cover, pq.Array(&genres), pq.Array(&producers), pq.Array(&release.Tracklist), &release.Type, &release.AOTYID, &release.TrendingScore); err != nil {
 			return nil, err
 		}
+
+		release.Artists = artists
+		release.Featurings = featurings
+		release.Genres = genres
+		release.Producers = producers
 
 		releases = append(releases, release)
 	}

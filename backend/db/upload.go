@@ -2,56 +2,37 @@ package db
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
-	"log"
+	"main/models"
 	"main/services"
-	"math/rand"
-	"net"
-	"net/http"
-	"net/url"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
 
-	"github.com/caffix/cloudflare-roundtripper/cfrt"
-	"github.com/gocolly/colly"
 	"github.com/lib/pq"
 )
 
-type Release struct {
-	AOTY_Id    string    `json:"aoty_id"`
-	Artists    []string  `json:"artists"`
-	Featurings []string  `json:"featurings"`
-	Title      string    `json:"title"`
-	Date       time.Time `json:"date"`
-	Cover      string    `json:"cover"`
-	Genres     []string  `json:"genres"`
-	Producers  []string  `json:"producers"`
-	Tracklist  []string  `json:"tracklist"`
-}
-
-func Upload(releases map[string][]Release, mode string, spotifyAuthTokens []string) {
+func Upload(releases map[string][]models.Release, mode string) {
 	updateTime := time.Now()
 
 	semaphore := make(chan struct{}, 50)
 
 	var wg sync.WaitGroup
 
+	fmt.Println("Uploading releases...")
+
 	for releaseType, releasesOfType := range releases {
-		fmt.Println("Uploading " + releaseType + "s...")
 		for _, release := range releasesOfType {
 			semaphore <- struct{}{}
 			wg.Add(1)
-			go func(releaseType string, release Release) {
+			go func(releaseType string, release models.Release) {
 				defer func() {
 					wg.Done()
 					<-semaphore
 				}()
 				releaseId, err := AddOrUpdateRelease(releaseType, release, updateTime)
 				if err == nil {
-					AddOrUpdateArtists(releaseId, release, mode, spotifyAuthTokens)
+					AddOrUpdateArtists(releaseId, release, mode)
 					AddOrUpdateProducers(releaseId, release)
 					AddOrUpdateGenres(releaseId, release)
 				}
@@ -61,17 +42,13 @@ func Upload(releases map[string][]Release, mode string, spotifyAuthTokens []stri
 
 	wg.Wait()
 
-	fmt.Println("----------------------------")
-	fmt.Println("----------------------------")
 	_, err := db.Exec("DELETE FROM Releases WHERE updated!=$1", updateTime)
 	if err == nil {
 		fmt.Println("Old releases purged!")
-		fmt.Println("----------------------------")
-		fmt.Println("----------------------------")
 	}
 }
 
-func AddOrUpdateRelease(releaseType string, release Release, updateTime time.Time) (int64, error) {
+func AddOrUpdateRelease(releaseType string, release models.Release, updateTime time.Time) (int64, error) {
 	var id int64
 	err := db.QueryRow("SELECT id FROM Releases WHERE aoty_id=$1", release.AOTY_Id).Scan(&id)
 	if err == nil {
@@ -99,13 +76,13 @@ func AddOrUpdateRelease(releaseType string, release Release, updateTime time.Tim
 
 }
 
-func AddOrUpdateArtists(releaseId int64, release Release, mode string, spotifyAuthTokens []string) {
+func AddOrUpdateArtists(releaseId int64, release models.Release, mode string) {
 
-	artitstsPopularity := PopularityAverage{}
-	featuresPopularity := PopularityAverage{}
+	artitstsPopularity := models.PopularityAverage{}
+	featuresPopularity := models.PopularityAverage{}
 
 	for _, artist := range release.Artists {
-		artistId, popularity, err := uploadArtist(artist, mode, spotifyAuthTokens)
+		artistId, popularity, err := uploadArtist(artist, mode)
 		if err == nil {
 			if popularity != -1 {
 				artitstsPopularity.AddValue(popularity)
@@ -119,7 +96,7 @@ func AddOrUpdateArtists(releaseId int64, release Release, mode string, spotifyAu
 	}
 
 	for _, featuredArtists := range release.Featurings {
-		artistId, popularity, err := uploadArtist(featuredArtists, mode, spotifyAuthTokens)
+		artistId, popularity, err := uploadArtist(featuredArtists, mode)
 		if err == nil {
 			if popularity != -1 {
 				featuresPopularity.AddValue(popularity)
@@ -151,7 +128,7 @@ func AddOrUpdateArtists(releaseId int64, release Release, mode string, spotifyAu
 	}
 }
 
-func uploadArtist(artist string, mode string, spotifyAuthTokens []string) (int64, int, error) {
+func uploadArtist(artist string, mode string) (int64, int, error) {
 	compareName := strings.ToLower(strings.ReplaceAll(artist, " ", ""))
 
 	var spotifyName string
@@ -161,9 +138,9 @@ func uploadArtist(artist string, mode string, spotifyAuthTokens []string) (int64
 	var err error
 
 	if mode == "spotify" {
-		spotifyName, spotifyId, popularity, genres, err = spotifySearch(artist, spotifyAuthTokens)
+		spotifyName, spotifyId, popularity, genres, err = services.SpotifySearch(artist)
 	} else if mode == "scrape" {
-		spotifyName, spotifyId, popularity, genres, err = spotifyScrapedSearch(artist)
+		spotifyName, spotifyId, popularity, genres, err = services.SpotifyScrapedSearch(artist)
 	}
 	if err == nil {
 		var id int64
@@ -209,121 +186,7 @@ func uploadArtist(artist string, mode string, spotifyAuthTokens []string) (int64
 	}
 }
 
-func spotifySearch(artist string, spotifyAuthTokens []string) (string, string, int, []string, error) {
-	compareName := strings.ToLower(strings.ReplaceAll(artist, " ", ""))
-
-	spotifyURL := fmt.Sprintf("https://api.spotify.com/v1/search?type=artist&q=%s", url.QueryEscape(artist))
-
-	rand.Seed(time.Now().UnixNano())
-	tokenIndex := rand.Intn(len(spotifyAuthTokens))
-
-	req, err := http.NewRequest("GET", spotifyURL, nil)
-	if err != nil {
-		return "", "", -1, nil, err
-	}
-	req.Header.Set("Authorization", "Bearer "+spotifyAuthTokens[tokenIndex])
-
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil || resp.StatusCode != 200 {
-		fmt.Println("SPOTIFY ERROR!!!!")
-		fmt.Println(resp.Header)
-		return "", "", -1, nil, err
-	}
-	defer resp.Body.Close()
-
-	var data map[string]interface{}
-	err = json.NewDecoder(resp.Body).Decode(&data)
-	if err != nil {
-		return "", "", -1, nil, err
-	}
-
-	artists := data["artists"].(map[string]interface{})["items"].([]interface{})
-	for _, artist := range artists {
-		name := strings.ToLower(strings.ReplaceAll(artist.(map[string]interface{})["name"].(string), " ", ""))
-		if name == compareName {
-			genres := make([]string, 0)
-			for _, genre := range artist.(map[string]interface{})["genres"].([]interface{}) {
-				genres = append(genres, genre.(string))
-			}
-			return artist.(map[string]interface{})["name"].(string), artist.(map[string]interface{})["id"].(string), int(artist.(map[string]interface{})["popularity"].(float64)), genres, nil
-		}
-	}
-
-	return "", "", -1, nil, fmt.Errorf("no matching artist found")
-}
-
-func spotifyScrapedSearch(artist string) (string, string, int, []string, error) {
-	compareName := strings.ToLower(strings.ReplaceAll(artist, " ", ""))
-	found := false
-
-	var name string
-	var spotifyId string
-	var popularity int
-	var genres []string
-
-	client := &http.Client{
-		Timeout: 15 * time.Second,
-		Transport: &http.Transport{
-			DialContext: (&net.Dialer{
-				Timeout:   15 * time.Second,
-				KeepAlive: 15 * time.Second,
-				DualStack: true,
-			}).DialContext,
-		},
-	}
-	client.Transport, _ = cfrt.New(client.Transport)
-
-	c := colly.NewCollector()
-	c.WithTransport(client.Transport)
-
-	c.OnHTML("div.song-details.search-song-details", func(e *colly.HTMLElement) {
-		spotifyName := e.ChildText("h1.song-title u")
-		spotifyCompareName := strings.ToLower(strings.ReplaceAll(spotifyName, " ", ""))
-
-		if spotifyCompareName == compareName && !found {
-			found = true
-
-			name = spotifyName
-
-			href := e.ChildAttr("a:nth-of-type(1)", "href")
-			parts := strings.Split(href, "/")
-			spotifyId = parts[len(parts)-1]
-
-			c.Visit("https://musicstax.com/" + href)
-		}
-	})
-
-	c.OnHTML("div.song-details-right", func(e *colly.HTMLElement) {
-		allGenres := e.ChildText("[data-cy='artist-genres']")
-		separators := []string{", ", " & "}
-		genres = services.SplitString(allGenres, separators)
-
-		popularityStr := strings.TrimSpace(strings.Split(e.ChildText(`[data-cy="artist-followers"]`), "//")[1])
-		popularityParsed, err := strconv.Atoi(strings.TrimSuffix(popularityStr, "% popularity"))
-		if err != nil {
-			log.Println("Error parsing popularity:", err)
-			return
-		}
-		popularity = popularityParsed
-	})
-
-	c.OnError(func(r *colly.Response, err error) {
-		fmt.Println("ERROR:", r.StatusCode)
-		fmt.Println(r.Headers)
-	})
-
-	c.Visit("https://musicstax.com/search?q=" + artist + "&view=artists")
-	c.Wait()
-
-	if found {
-		return name, spotifyId, popularity, genres, nil
-	} else {
-		return "", "", -1, nil, fmt.Errorf("no matching artist found")
-	}
-}
-
-func AddOrUpdateProducers(releaseId int64, release Release) {
+func AddOrUpdateProducers(releaseId int64, release models.Release) {
 
 	for _, producer := range release.Producers {
 		compareName := strings.ToLower(strings.ReplaceAll(producer, " ", ""))
@@ -346,7 +209,7 @@ func AddOrUpdateProducers(releaseId int64, release Release) {
 
 }
 
-func AddOrUpdateGenres(releaseId int64, release Release) {
+func AddOrUpdateGenres(releaseId int64, release models.Release) {
 
 	for _, genre := range release.Genres {
 		compareType := strings.ToLower(strings.ReplaceAll(genre, " ", ""))
@@ -390,21 +253,4 @@ func AddOrUpdateArtistGenres(artistId int64, genres []string) {
 		}
 	}
 
-}
-
-type PopularityAverage struct {
-	count int
-	sum   int
-}
-
-func (pa *PopularityAverage) AddValue(value int) {
-	pa.count++
-	pa.sum += value
-}
-
-func (pa *PopularityAverage) GetAverage() float64 {
-	if pa.count == 0 {
-		return 0
-	}
-	return float64(pa.sum) / float64(pa.count)
 }
