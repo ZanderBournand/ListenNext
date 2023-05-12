@@ -1,0 +1,38 @@
+# GraphQL schema example
+#
+# https://gqlgen.com/getting-started/
+
+scalar Time
+
+type Release {
+  _id: Int!
+  title: String!
+  artists: [String!]!
+  featurings: [String!]
+  date: Time!
+  cover: String
+  genres: [String!]
+  producers: [String!]
+  tracklist: [String!]
+  type: String!
+  aoty_id: String
+  trending_score: Float
+}
+
+type ReleasesList {
+  releases: [Release!]!
+  prev: Boolean!
+  next: Boolean!
+}
+
+type Query {
+  trendingReleases(input: ReleasesInput!): ReleasesList!
+  release(id: Int!): Release!
+}
+
+input ReleasesInput {
+  type: String!
+  direction: String!
+  reference: Int!
+  period: String!
+}

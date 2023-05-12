@@ -4,11 +4,16 @@ import (
 	"context"
 	"fmt"
 	"main/db"
+	"main/graph"
 	"net/http"
 
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/go-chi/chi"
 	"golang.org/x/oauth2"
 )
+
+var graphHandler = handler.NewDefaultServer(graph.NewExecutableSchema(graph.Config{Resolvers: &graph.Resolver{}}))
 
 var config = &oauth2.Config{
 	ClientID:     os.Getenv("SPOTIFY_API_GENERAL_CLIENT_ID"),
@@ -24,6 +29,8 @@ var config = &oauth2.Config{
 func SetupRoutes(r *chi.Mux) {
 	r.Get("/callback", callbackHandler)
 	r.Get("/login", loginHandler)
+	r.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	r.Handle("/query", graphHandler)
 }
 
 func callbackHandler(w http.ResponseWriter, r *http.Request) {
