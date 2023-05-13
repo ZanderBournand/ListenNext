@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"main/db"
 	"main/models"
 	"net"
 	"net/http"
@@ -25,7 +26,84 @@ const (
 	requestDateFormat = "2006-01"
 )
 
-func Releases() map[string][]models.Release {
+func Upload(releases map[string][]models.Release) {
+	updateTime := time.Now()
+
+	semaphore := make(chan struct{}, 50)
+
+	var wg sync.WaitGroup
+
+	fmt.Println("Uploading releases...")
+
+	for releaseType, releasesOfType := range releases {
+		for _, release := range releasesOfType {
+			semaphore <- struct{}{}
+			wg.Add(1)
+			go func(releaseType string, release models.Release) {
+				defer func() {
+					wg.Done()
+					<-semaphore
+				}()
+				releaseId, err := db.AddOrUpdateRelease(releaseType, release, updateTime)
+				if err == nil {
+					AddOrUpdateArtists(releaseId, release)
+					db.AddOrUpdateProducers(releaseId, release)
+					db.AddOrUpdateGenres(releaseId, release)
+				}
+			}(releaseType, release)
+		}
+	}
+
+	wg.Wait()
+
+	db.PurgeReleases(updateTime)
+}
+
+func AddOrUpdateArtists(releaseId int64, release models.Release) {
+
+	artitstsPopularity := models.PopularityAverage{}
+	featuresPopularity := models.PopularityAverage{}
+
+	for _, artist := range release.Artists {
+		spotifyArtist, _ := SpotifySearch(artist)
+
+		artistId, popularity, err := db.UploadArtist(artist, spotifyArtist)
+		if err == nil {
+			if popularity != -1 {
+				artitstsPopularity.AddValue(popularity)
+			}
+			db.UploadReleaseArtists(releaseId, artistId, "main")
+		}
+	}
+
+	for _, feature := range release.Featurings {
+		spotifyArtist, _ := SpotifySearch(feature)
+
+		artistId, popularity, err := db.UploadArtist(feature, spotifyArtist)
+		if err == nil {
+			if popularity != -1 {
+				featuresPopularity.AddValue(popularity)
+			}
+			db.UploadReleaseArtists(releaseId, artistId, "feature")
+		}
+	}
+
+	artistsAverage := artitstsPopularity.GetAverage()
+	featuresAverage := featuresPopularity.GetAverage()
+	var trending_score float64
+
+	if artistsAverage > 0 && featuresAverage > 0 {
+		trending_score = (artistsAverage * 0.75) + (featuresAverage * 0.25)
+	} else if artistsAverage > 0 {
+		trending_score = artistsAverage
+	}
+
+	if trending_score != 0.0 {
+		db.UpdateReleaseTrendingScore(releaseId, trending_score)
+	}
+}
+
+func ScrapeReleases() {
 	now := time.Now()
 	startDate := now.AddDate(0, 0, -14)
 	endDate := now.AddDate(0, 3, 0)
@@ -73,7 +151,7 @@ func Releases() map[string][]models.Release {
 		}
 	}
 
-	return allReleases
+	Upload(allReleases)
 }
 
 func getReleases(requestDate string, startDate time.Time, endDate time.Time, start int, allReleases *[]models.Release, releaseType string) {

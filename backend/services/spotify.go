@@ -6,17 +6,12 @@ import (
 	"log"
 	"main/models"
 	"math/rand"
-	"net"
 	"net/http"
 	"net/url"
 	"sort"
-	"strconv"
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/caffix/cloudflare-roundtripper/cfrt"
-	"github.com/gocolly/colly"
 )
 
 var (
@@ -455,7 +450,7 @@ func TopGenres(artists []models.SpotifyArtist) []string {
 	return topGenres
 }
 
-func SpotifySearch(artist string) (string, string, int, []string, error) {
+func SpotifySearch(artist string) (*models.SpotifyArtist, error) {
 	compareName := strings.ToLower(strings.ReplaceAll(artist, " ", ""))
 
 	spotifyURL := fmt.Sprintf("https://api.spotify.com/v1/search?type=artist&q=%s", url.QueryEscape(artist))
@@ -465,7 +460,7 @@ func SpotifySearch(artist string) (string, string, int, []string, error) {
 
 	req, err := http.NewRequest("GET", spotifyURL, nil)
 	if err != nil {
-		return "", "", -1, nil, err
+		return nil, err
 	}
 	req.Header.Set("Authorization", "Bearer "+scrapingTokens[tokenIndex])
 
@@ -474,14 +469,14 @@ func SpotifySearch(artist string) (string, string, int, []string, error) {
 	if err != nil || resp.StatusCode != 200 {
 		fmt.Println("SPOTIFY ERROR!!!!")
 		fmt.Println(resp.Header)
-		return "", "", -1, nil, err
+		return nil, err
 	}
 	defer resp.Body.Close()
 
 	var data map[string]interface{}
 	err = json.NewDecoder(resp.Body).Decode(&data)
 	if err != nil {
-		return "", "", -1, nil, err
+		return nil, err
 	}
 
 	artists := data["artists"].(map[string]interface{})["items"].([]interface{})
@@ -492,79 +487,17 @@ func SpotifySearch(artist string) (string, string, int, []string, error) {
 			for _, genre := range artist.(map[string]interface{})["genres"].([]interface{}) {
 				genres = append(genres, genre.(string))
 			}
-			return artist.(map[string]interface{})["name"].(string), artist.(map[string]interface{})["id"].(string), int(artist.(map[string]interface{})["popularity"].(float64)), genres, nil
+
+			spotifyAritst := models.SpotifyArtist{
+				Name:       artist.(map[string]interface{})["name"].(string),
+				ID:         artist.(map[string]interface{})["id"].(string),
+				Genres:     genres,
+				Popularity: int(artist.(map[string]interface{})["popularity"].(float64)),
+			}
+
+			return &spotifyAritst, nil
 		}
 	}
 
-	return "", "", -1, nil, fmt.Errorf("no matching artist found")
-}
-
-func SpotifyScrapedSearch(artist string) (string, string, int, []string, error) {
-	compareName := strings.ToLower(strings.ReplaceAll(artist, " ", ""))
-	found := false
-
-	var name string
-	var spotifyId string
-	var popularity int
-	var genres []string
-
-	client := &http.Client{
-		Timeout: 15 * time.Second,
-		Transport: &http.Transport{
-			DialContext: (&net.Dialer{
-				Timeout:   15 * time.Second,
-				KeepAlive: 15 * time.Second,
-				DualStack: true,
-			}).DialContext,
-		},
-	}
-	client.Transport, _ = cfrt.New(client.Transport)
-
-	c := colly.NewCollector()
-	c.WithTransport(client.Transport)
-
-	c.OnHTML("div.song-details.search-song-details", func(e *colly.HTMLElement) {
-		spotifyName := e.ChildText("h1.song-title u")
-		spotifyCompareName := strings.ToLower(strings.ReplaceAll(spotifyName, " ", ""))
-
-		if spotifyCompareName == compareName && !found {
-			found = true
-
-			name = spotifyName
-
-			href := e.ChildAttr("a:nth-of-type(1)", "href")
-			parts := strings.Split(href, "/")
-			spotifyId = parts[len(parts)-1]
-
-			c.Visit("https://musicstax.com/" + href)
-		}
-	})
-
-	c.OnHTML("div.song-details-right", func(e *colly.HTMLElement) {
-		allGenres := e.ChildText("[data-cy='artist-genres']")
-		separators := []string{", ", " & "}
-		genres = SplitString(allGenres, separators)
-
-		popularityStr := strings.TrimSpace(strings.Split(e.ChildText(`[data-cy="artist-followers"]`), "//")[1])
-		popularityParsed, err := strconv.Atoi(strings.TrimSuffix(popularityStr, "% popularity"))
-		if err != nil {
-			log.Println("Error parsing popularity:", err)
-			return
-		}
-		popularity = popularityParsed
-	})
-
-	c.OnError(func(r *colly.Response, err error) {
-		fmt.Println("ERROR:", r.StatusCode)
-		fmt.Println(r.Headers)
-	})
-
-	c.Visit("https://musicstax.com/search?q=" + artist + "&view=artists")
-	c.Wait()
-
-	if found {
-		return name, spotifyId, popularity, genres, nil
-	} else {
-		return "", "", -1, nil, fmt.Errorf("no matching artist found")
-	}
+	return nil, fmt.Errorf("no matching artist found")
 }

@@ -6,6 +6,17 @@ import (
 	"time"
 )
 
+type AuthOps struct {
+	Login    interface{} `json:"login"`
+	Register interface{} `json:"register"`
+}
+
+type NewUser struct {
+	DisplayName string `json:"display_name"`
+	Email       string `json:"email"`
+	Password    string `json:"password"`
+}
+
 type Release struct {
 	ID            int       `json:"_id"`
 	Title         string    `json:"title"`

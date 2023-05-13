@@ -2,6 +2,15 @@
 #
 # https://gqlgen.com/getting-started/
 
+directive @goField(
+  forceResolver: Boolean
+  name: String
+) on FIELD_DEFINITION | INPUT_FIELD_DEFINITION
+
+# new directive
+directive @auth on FIELD_DEFINITION
+
+scalar Any
 scalar Time
 
 type Release {
@@ -25,9 +34,33 @@ type ReleasesList {
   next: Boolean!
 }
 
+type User {
+  _id: ID!
+  display_name: String!
+  email: String!
+}
+
+type AuthOps {
+  login(email: String!, password: String!): Any! @goField(forceResolver: true)
+  register(input: NewUser!): Any! @goField(forceResolver: true)
+}
+
 type Query {
   trendingReleases(input: ReleasesInput!): ReleasesList!
   release(id: Int!): Release!
+  user(id: ID!): User! @goField(forceResolver: true)
+  # Add Protected Resource
+  protected: String! @goField(forceResolver: true) @auth
+}
+
+type Mutation {
+  auth: AuthOps! @goField(forceResolver: true)
+}
+
+input NewUser {
+  display_name: String!
+  email: String!
+  password: String!
 }
 
 input ReleasesInput {

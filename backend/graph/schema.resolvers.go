@@ -8,7 +8,23 @@ import (
 	"context"
 	"main/db"
 	"main/graph/model"
+	"main/services"
 )
+
+// Login is the resolver for the login field.
+func (r *authOpsResolver) Login(ctx context.Context, obj *model.AuthOps, email string, password string) (interface{}, error) {
+	return services.UserLogin(ctx, email, password)
+}
+
+// Register is the resolver for the register field.
+func (r *authOpsResolver) Register(ctx context.Context, obj *model.AuthOps, input model.NewUser) (interface{}, error) {
+	return services.UserRegister(ctx, input)
+}
+
+// Auth is the resolver for the auth field.
+func (r *mutationResolver) Auth(ctx context.Context) (*model.AuthOps, error) {
+	return &model.AuthOps{}, nil
+}
 
 // TrendingReleases is the resolver for the trendingReleases field.
 func (r *queryResolver) TrendingReleases(ctx context.Context, input model.ReleasesInput) (*model.ReleasesList, error) {
@@ -20,7 +36,25 @@ func (r *queryResolver) Release(ctx context.Context, id int) (*model.Release, er
 	return db.GetRelease(id), nil
 }
 
+// User is the resolver for the user field.
+func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
+	return db.UserGetByID(ctx, id)
+}
+
+// Protected is the resolver for the protected field.
+func (r *queryResolver) Protected(ctx context.Context) (string, error) {
+	return "Success", nil
+}
+
+// AuthOps returns AuthOpsResolver implementation.
+func (r *Resolver) AuthOps() AuthOpsResolver { return &authOpsResolver{r} }
+
+// Mutation returns MutationResolver implementation.
+func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
+
 // Query returns QueryResolver implementation.
 func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
 
+type authOpsResolver struct{ *Resolver }
+type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

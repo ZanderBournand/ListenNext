@@ -5,10 +5,13 @@ go 1.17
 require (
 	github.com/99designs/gqlgen v0.17.31
 	github.com/caffix/cloudflare-roundtripper v0.0.0-20181218223503-4c29d231c9cb
+	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/go-chi/chi v1.5.4
 	github.com/gocolly/colly v1.2.0
+	github.com/google/uuid v1.3.0
 	github.com/lib/pq v1.10.9
 	github.com/vektah/gqlparser/v2 v2.5.1
+	golang.org/x/crypto v0.9.0
 	golang.org/x/oauth2 v0.7.0
 )
 
@@ -34,8 +37,8 @@ require (
 	github.com/urfave/cli/v2 v2.24.4 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	golang.org/x/mod v0.8.0 // indirect
-	golang.org/x/net v0.9.0 // indirect
-	golang.org/x/sys v0.7.0 // indirect
+	golang.org/x/net v0.10.0 // indirect
+	golang.org/x/sys v0.8.0 // indirect
 	golang.org/x/text v0.9.0 // indirect
 	golang.org/x/tools v0.6.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect

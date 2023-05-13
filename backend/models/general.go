@@ -30,9 +30,10 @@ type Release struct {
 }
 
 type SpotifyArtist struct {
-	Name   string   `json:"name"`
-	ID     string   `json:"id"`
-	Genres []string `json:"genres"`
+	Name       string   `json:"name"`
+	ID         string   `json:"id"`
+	Genres     []string `json:"genres"`
+	Popularity int      `json:"popularity"`
 }
 
 type SpotifyTrack struct {
