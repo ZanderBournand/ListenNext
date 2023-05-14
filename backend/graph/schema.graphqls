@@ -9,6 +9,7 @@ directive @goField(
 
 # new directive
 directive @auth on FIELD_DEFINITION
+directive @spotify on FIELD_DEFINITION
 
 scalar Any
 scalar Time
@@ -43,14 +44,18 @@ type User {
 type AuthOps {
   login(email: String!, password: String!): Any! @goField(forceResolver: true)
   register(input: NewUser!): Any! @goField(forceResolver: true)
+  spotifyLogin(code: String!): Any! @goField(forceResolver: true)
 }
 
 type Query {
   trendingReleases(input: ReleasesInput!): ReleasesList!
-  release(id: Int!): Release!
+    @goField(forceResolver: true)
+  release(id: Int!): Release! @goField(forceResolver: true)
   user(id: ID!): User! @goField(forceResolver: true)
-  # Add Protected Resource
   protected: String! @goField(forceResolver: true) @auth
+  recommendations(input: RecommendationsInput!): [Release]!
+    @goField(forceResolver: true)
+    @spotify
 }
 
 type Mutation {
@@ -67,5 +72,9 @@ input ReleasesInput {
   type: String!
   direction: String!
   reference: Int!
+  period: String!
+}
+
+input RecommendationsInput {
   period: String!
 }

@@ -3,11 +3,11 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"main/models"
+	"main/types"
 	"strings"
 )
 
-func AddOrUpdateProducers(releaseId int64, release models.Release) {
+func AddOrUpdateProducers(releaseId int64, release types.Release) {
 
 	for _, producer := range release.Producers {
 		compareName := strings.ToLower(strings.ReplaceAll(producer, " ", ""))

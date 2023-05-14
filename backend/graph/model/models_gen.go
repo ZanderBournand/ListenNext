@@ -7,14 +7,19 @@ import (
 )
 
 type AuthOps struct {
-	Login    interface{} `json:"login"`
-	Register interface{} `json:"register"`
+	Login        interface{} `json:"login"`
+	Register     interface{} `json:"register"`
+	SpotifyLogin interface{} `json:"spotifyLogin"`
 }
 
 type NewUser struct {
 	DisplayName string `json:"display_name"`
 	Email       string `json:"email"`
 	Password    string `json:"password"`
+}
+
+type RecommendationsInput struct {
+	Period string `json:"period"`
 }
 
 type Release struct {

@@ -44,13 +44,15 @@ type ResolverRoot interface {
 }
 
 type DirectiveRoot struct {
-	Auth func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error)
+	Auth    func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error)
+	Spotify func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error)
 }
 
 type ComplexityRoot struct {
 	AuthOps struct {
-		Login    func(childComplexity int, email string, password string) int
-		Register func(childComplexity int, input model.NewUser) int
+		Login        func(childComplexity int, email string, password string) int
+		Register     func(childComplexity int, input model.NewUser) int
+		SpotifyLogin func(childComplexity int, code string) int
 	}
 
 	Mutation struct {
@@ -59,6 +61,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Protected        func(childComplexity int) int
+		Recommendations  func(childComplexity int, input model.RecommendationsInput) int
 		Release          func(childComplexity int, id int) int
 		TrendingReleases func(childComplexity int, input model.ReleasesInput) int
 		User             func(childComplexity int, id string) int
@@ -95,6 +98,7 @@ type ComplexityRoot struct {
 type AuthOpsResolver interface {
 	Login(ctx context.Context, obj *model.AuthOps, email string, password string) (interface{}, error)
 	Register(ctx context.Context, obj *model.AuthOps, input model.NewUser) (interface{}, error)
+	SpotifyLogin(ctx context.Context, obj *model.AuthOps, code string) (interface{}, error)
 }
 type MutationResolver interface {
 	Auth(ctx context.Context) (*model.AuthOps, error)
@@ -104,6 +108,7 @@ type QueryResolver interface {
 	Release(ctx context.Context, id int) (*model.Release, error)
 	User(ctx context.Context, id string) (*model.User, error)
 	Protected(ctx context.Context) (string, error)
+	Recommendations(ctx context.Context, input model.RecommendationsInput) ([]*model.Release, error)
 }
 
 type executableSchema struct {
@@ -145,6 +150,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.AuthOps.Register(childComplexity, args["input"].(model.NewUser)), true
 
+	case "AuthOps.spotifyLogin":
+		if e.complexity.AuthOps.SpotifyLogin == nil {
+			break
+		}
+
+		args, err := ec.field_AuthOps_spotifyLogin_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.AuthOps.SpotifyLogin(childComplexity, args["code"].(string)), true
+
 	case "Mutation.auth":
 		if e.complexity.Mutation.Auth == nil {
 			break
@@ -158,6 +175,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Protected(childComplexity), true
+
+	case "Query.recommendations":
+		if e.complexity.Query.Recommendations == nil {
+			break
+		}
+
+		args, err := ec.field_Query_recommendations_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Recommendations(childComplexity, args["input"].(model.RecommendationsInput)), true
 
 	case "Query.release":
 		if e.complexity.Query.Release == nil {
@@ -330,6 +359,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	ec := executionContext{rc, e}
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputNewUser,
+		ec.unmarshalInputRecommendationsInput,
 		ec.unmarshalInputReleasesInput,
 	)
 	first := true
@@ -449,6 +479,21 @@ func (ec *executionContext) field_AuthOps_register_args(ctx context.Context, raw
 	return args, nil
 }
 
+func (ec *executionContext) field_AuthOps_spotifyLogin_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["code"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("code"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["code"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -461,6 +506,21 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_recommendations_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 model.RecommendationsInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg0, err = ec.unmarshalNRecommendationsInput2mainᚋgraphᚋmodelᚐRecommendationsInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -657,6 +717,61 @@ func (ec *executionContext) fieldContext_AuthOps_register(ctx context.Context, f
 	return fc, nil
 }
 
+func (ec *executionContext) _AuthOps_spotifyLogin(ctx context.Context, field graphql.CollectedField, obj *model.AuthOps) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AuthOps_spotifyLogin(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.AuthOps().SpotifyLogin(rctx, obj, fc.Args["code"].(string))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(interface{})
+	fc.Result = res
+	return ec.marshalNAny2interface(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AuthOps_spotifyLogin(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthOps",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Any does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_AuthOps_spotifyLogin_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_auth(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Mutation_auth(ctx, field)
 	if err != nil {
@@ -700,6 +815,8 @@ func (ec *executionContext) fieldContext_Mutation_auth(ctx context.Context, fiel
 				return ec.fieldContext_AuthOps_login(ctx, field)
 			case "register":
 				return ec.fieldContext_AuthOps_register(ctx, field)
+			case "spotifyLogin":
+				return ec.fieldContext_AuthOps_spotifyLogin(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthOps", field.Name)
 		},
@@ -974,6 +1091,107 @@ func (ec *executionContext) fieldContext_Query_protected(ctx context.Context, fi
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_recommendations(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_recommendations(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().Recommendations(rctx, fc.Args["input"].(model.RecommendationsInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Spotify == nil {
+				return nil, errors.New("directive spotify is not implemented")
+			}
+			return ec.directives.Spotify(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.([]*model.Release); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be []*main/graph/model.Release`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Release)
+	fc.Result = res
+	return ec.marshalNRelease2ᚕᚖmainᚋgraphᚋmodelᚐRelease(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_recommendations(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "_id":
+				return ec.fieldContext_Release__id(ctx, field)
+			case "title":
+				return ec.fieldContext_Release_title(ctx, field)
+			case "artists":
+				return ec.fieldContext_Release_artists(ctx, field)
+			case "featurings":
+				return ec.fieldContext_Release_featurings(ctx, field)
+			case "date":
+				return ec.fieldContext_Release_date(ctx, field)
+			case "cover":
+				return ec.fieldContext_Release_cover(ctx, field)
+			case "genres":
+				return ec.fieldContext_Release_genres(ctx, field)
+			case "producers":
+				return ec.fieldContext_Release_producers(ctx, field)
+			case "tracklist":
+				return ec.fieldContext_Release_tracklist(ctx, field)
+			case "type":
+				return ec.fieldContext_Release_type(ctx, field)
+			case "aoty_id":
+				return ec.fieldContext_Release_aoty_id(ctx, field)
+			case "trending_score":
+				return ec.fieldContext_Release_trending_score(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Release", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_recommendations_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return
 	}
 	return fc, nil
 }
@@ -3724,6 +3942,35 @@ func (ec *executionContext) unmarshalInputNewUser(ctx context.Context, obj inter
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputRecommendationsInput(ctx context.Context, obj interface{}) (model.RecommendationsInput, error) {
+	var it model.RecommendationsInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"period"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "period":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("period"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Period = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputReleasesInput(ctx context.Context, obj interface{}) (model.ReleasesInput, error) {
 	var it model.ReleasesInput
 	asMap := map[string]interface{}{}
@@ -3828,6 +4075,26 @@ func (ec *executionContext) _AuthOps(ctx context.Context, sel ast.SelectionSet, 
 					}
 				}()
 				res = ec._AuthOps_register(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "spotifyLogin":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._AuthOps_spotifyLogin(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -3986,6 +4253,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_protected(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "recommendations":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_recommendations(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -4593,8 +4883,51 @@ func (ec *executionContext) unmarshalNNewUser2mainᚋgraphᚋmodelᚐNewUser(ctx
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNRecommendationsInput2mainᚋgraphᚋmodelᚐRecommendationsInput(ctx context.Context, v interface{}) (model.RecommendationsInput, error) {
+	res, err := ec.unmarshalInputRecommendationsInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalNRelease2mainᚋgraphᚋmodelᚐRelease(ctx context.Context, sel ast.SelectionSet, v model.Release) graphql.Marshaler {
 	return ec._Release(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRelease2ᚕᚖmainᚋgraphᚋmodelᚐRelease(ctx context.Context, sel ast.SelectionSet, v []*model.Release) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalORelease2ᚖmainᚋgraphᚋmodelᚐRelease(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	return ret
 }
 
 func (ec *executionContext) marshalNRelease2ᚕᚖmainᚋgraphᚋmodelᚐReleaseᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Release) graphql.Marshaler {
@@ -5039,6 +5372,13 @@ func (ec *executionContext) marshalOFloat2ᚖfloat64(ctx context.Context, sel as
 	}
 	res := graphql.MarshalFloatContext(*v)
 	return graphql.WrapContextMarshaler(ctx, res)
+}
+
+func (ec *executionContext) marshalORelease2ᚖmainᚋgraphᚋmodelᚐRelease(ctx context.Context, sel ast.SelectionSet, v *model.Release) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Release(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {

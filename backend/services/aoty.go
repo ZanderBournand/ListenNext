@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"main/db"
-	"main/models"
+	"main/types"
 	"net"
 	"net/http"
 	"regexp"
@@ -26,7 +26,7 @@ const (
 	requestDateFormat = "2006-01"
 )
 
-func Upload(releases map[string][]models.Release) {
+func Upload(releases map[string][]types.Release) {
 	updateTime := time.Now()
 
 	semaphore := make(chan struct{}, 50)
@@ -39,7 +39,7 @@ func Upload(releases map[string][]models.Release) {
 		for _, release := range releasesOfType {
 			semaphore <- struct{}{}
 			wg.Add(1)
-			go func(releaseType string, release models.Release) {
+			go func(releaseType string, release types.Release) {
 				defer func() {
 					wg.Done()
 					<-semaphore
@@ -59,10 +59,10 @@ func Upload(releases map[string][]models.Release) {
 	db.PurgeReleases(updateTime)
 }
 
-func AddOrUpdateArtists(releaseId int64, release models.Release) {
+func AddOrUpdateArtists(releaseId int64, release types.Release) {
 
-	artitstsPopularity := models.PopularityAverage{}
-	featuresPopularity := models.PopularityAverage{}
+	artitstsPopularity := types.PopularityAverage{}
+	featuresPopularity := types.PopularityAverage{}
 
 	for _, artist := range release.Artists {
 		spotifyArtist, _ := SpotifySearch(artist)
@@ -109,10 +109,10 @@ func ScrapeReleases() {
 	endDate := now.AddDate(0, 3, 0)
 
 	releaseTypes := []string{"lp", "ep", "single", "mixtape", "reissue"}
-	allReleases := make(map[string][]models.Release)
+	allReleases := make(map[string][]types.Release)
 
 	for _, releaseType := range releaseTypes {
-		allReleases[releaseType] = []models.Release{}
+		allReleases[releaseType] = []types.Release{}
 	}
 
 	var wg sync.WaitGroup
@@ -154,7 +154,7 @@ func ScrapeReleases() {
 	Upload(allReleases)
 }
 
-func getReleases(requestDate string, startDate time.Time, endDate time.Time, start int, allReleases *[]models.Release, releaseType string) {
+func getReleases(requestDate string, startDate time.Time, endDate time.Time, start int, allReleases *[]types.Release, releaseType string) {
 	year := requestDate[:4]
 
 	data := map[string]string{
@@ -199,7 +199,7 @@ func getReleases(requestDate string, startDate time.Time, endDate time.Time, sta
 		cover := e.ChildAttr("img.lazyload", "data-src")
 		title := e.ChildText("div.albumTitle")
 
-		release := models.Release{
+		release := types.Release{
 			AOTY_Id:    aoty_id,
 			Artists:    []string{},
 			Featurings: []string{},
@@ -247,7 +247,7 @@ func extractReleaseID(url string) (string, error) {
 	return url[start:end], nil
 }
 
-func getDetails(link string, details *models.Release) {
+func getDetails(link string, details *types.Release) {
 	id := strings.Split(strings.Split(link, "/")[2], "-")[0]
 
 	data := map[string]string{

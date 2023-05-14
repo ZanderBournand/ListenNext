@@ -3,11 +3,11 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"main/models"
+	"main/types"
 	"strings"
 )
 
-func GetMatchingArtists(artists []models.SpotifyArtist, genres []string) []int {
+func GetMatchingArtists(artists []types.SpotifyArtist, genres []string) []int {
 	var ids []int
 
 	var allIDs []string
@@ -55,7 +55,7 @@ func GetMatchingArtists(artists []models.SpotifyArtist, genres []string) []int {
 	return ids
 }
 
-func UploadArtist(artist string, spotifyArtist *models.SpotifyArtist) (int64, int, error) {
+func UploadArtist(artist string, spotifyArtist *types.SpotifyArtist) (int64, int, error) {
 	compareName := strings.ToLower(strings.ReplaceAll(artist, " ", ""))
 
 	if spotifyArtist != nil {

@@ -21,6 +21,11 @@ func (r *authOpsResolver) Register(ctx context.Context, obj *model.AuthOps, inpu
 	return services.UserRegister(ctx, input)
 }
 
+// SpotifyLogin is the resolver for the spotifyLogin field.
+func (r *authOpsResolver) SpotifyLogin(ctx context.Context, obj *model.AuthOps, code string) (interface{}, error) {
+	return services.SpotifyUserLogin(ctx, code)
+}
+
 // Auth is the resolver for the auth field.
 func (r *mutationResolver) Auth(ctx context.Context) (*model.AuthOps, error) {
 	return &model.AuthOps{}, nil
@@ -44,6 +49,11 @@ func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error
 // Protected is the resolver for the protected field.
 func (r *queryResolver) Protected(ctx context.Context) (string, error) {
 	return "Success", nil
+}
+
+// Recommendations is the resolver for the recommendations field.
+func (r *queryResolver) Recommendations(ctx context.Context, input model.RecommendationsInput) ([]*model.Release, error) {
+	return services.GetRecommendations(ctx, input), nil
 }
 
 // AuthOps returns AuthOpsResolver implementation.

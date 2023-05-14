@@ -3,6 +3,8 @@ package services
 import (
 	"context"
 	"database/sql"
+	"fmt"
+	"main/config"
 	"main/db"
 	"main/graph/model"
 	"main/tools"
@@ -11,10 +13,8 @@ import (
 )
 
 func UserRegister(ctx context.Context, input model.NewUser) (interface{}, error) {
-	// Check Email
-	_, err := db.UserGetByEmail(ctx, input.Email)
+	user, err := db.UserGetByEmail(ctx, input.Email)
 	if err == nil {
-		// if err != record not found
 		if err != sql.ErrNoRows {
 			return nil, err
 		}
@@ -25,20 +25,26 @@ func UserRegister(ctx context.Context, input model.NewUser) (interface{}, error)
 		return nil, err
 	}
 
-	token, err := tools.JwtGenerate(ctx, createdUser.ID)
+	jwtToken, err := tools.JwtGenerate(ctx, createdUser.ID, "native")
 	if err != nil {
 		return nil, err
 	}
 
+	userClient := model.UserClient{
+		ID:          user.ID,
+		Email:       user.Email,
+		DisplayName: user.DisplayName,
+	}
+
 	return map[string]interface{}{
-		"token": token,
+		"user":  userClient,
+		"token": jwtToken,
 	}, nil
 }
 
 func UserLogin(ctx context.Context, email string, password string) (interface{}, error) {
-	getUser, err := db.UserGetByEmail(ctx, email)
+	user, err := db.UserGetByEmail(ctx, email)
 	if err != nil {
-		// if user not found
 		if err == sql.ErrNoRows {
 			return nil, &gqlerror.Error{
 				Message: "Email not found",
@@ -47,16 +53,70 @@ func UserLogin(ctx context.Context, email string, password string) (interface{},
 		return nil, err
 	}
 
-	if err := tools.ComparePassword(getUser.Password, password); err != nil {
+	if err := tools.ComparePassword(user.Password, password); err != nil {
 		return nil, err
 	}
 
-	token, err := tools.JwtGenerate(ctx, getUser.ID)
+	jwtToken, err := tools.JwtGenerate(ctx, user.ID, "native")
 	if err != nil {
 		return nil, err
 	}
 
+	userClient := model.UserClient{
+		ID:          user.ID,
+		Email:       user.Email,
+		DisplayName: user.DisplayName,
+	}
+
 	return map[string]interface{}{
-		"token": token,
+		"user":  userClient,
+		"token": jwtToken,
+	}, nil
+}
+
+func SpotifyUserLogin(ctx context.Context, code string) (interface{}, error) {
+
+	token, err := config.SpotifyOAuth.Exchange(context.Background(), code)
+	if err != nil {
+		return nil, &gqlerror.Error{
+			Message: "Spotify token exchange error",
+		}
+	}
+
+	email, name, err := SpotifyUserInfo(token.AccessToken)
+	if err != nil {
+		return nil, &gqlerror.Error{
+			Message: "Spotify user fetch error",
+		}
+	}
+
+	fmt.Println("EXPIRATION:", token.Expiry)
+
+	user, err := db.UserGetByEmail(ctx, email)
+	if err == nil {
+		if err != sql.ErrNoRows {
+			db.UpdateSpotifyUserTokens(user.ID, token.AccessToken, token.RefreshToken, token.Expiry)
+		}
+	} else {
+		user, err = db.SpotifyUserCreate(ctx, email, name, token.AccessToken, token.RefreshToken, token.Expiry)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	jwtToken, err := tools.JwtGenerate(ctx, user.ID, "spotify")
+	if err != nil {
+		return nil, err
+	}
+
+	userClient := model.UserClient{
+		ID:          user.ID,
+		Email:       user.Email,
+		DisplayName: user.DisplayName,
+	}
+
+	return map[string]interface{}{
+		"user":  userClient,
+		"token": jwtToken,
 	}, nil
 }

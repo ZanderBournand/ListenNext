@@ -1,16 +1,42 @@
 package services
 
 import (
+	"context"
 	"fmt"
 	"main/db"
-	"main/models"
-	"net/http"
+	"main/graph/model"
+	"main/middlewares"
+	"time"
 )
 
-func GetRecommendations(client *http.Client, period string) []models.DisplayRelease {
+func GetRecommendations(ctx context.Context, input model.RecommendationsInput) []*model.Release {
+	userID := middlewares.CtxUserID(ctx)
+	accessToken, refreshToken, tokenExpiration := db.GetSpotifyUserTokens(userID)
+
+	utcNow := time.Now().UTC()
+	utcExpirationTime := tokenExpiration.UTC()
+
+	if utcNow.After(utcExpirationTime) {
+		newAccessToken, ExpirationIn, err := SpotifyRefreshToken(refreshToken)
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
+
+		location, err := time.LoadLocation("UTC")
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
+
+		expirationTime := time.Now().Add(time.Second * time.Duration(ExpirationIn)).In(location)
+		db.UpdateSpotifyUserTokens(userID, newAccessToken, refreshToken, expirationTime)
+
+		accessToken = newAccessToken
+	}
 
 	fmt.Println("Fetching recommendations...")
-	artists, tracks, err := SpotifyUserTops(client)
+	artists, tracks, err := SpotifyUserTops(accessToken)
 	if err != nil {
 		fmt.Println(err)
 		return nil
@@ -31,7 +57,7 @@ func GetRecommendations(client *http.Client, period string) []models.DisplayRele
 	genres := TopGenres(artists)
 
 	artistIds := db.GetMatchingArtists(artists, genres)
-	releases, _ := db.GetMatchingReleases(artistIds, genres, period)
+	releases, _ := db.GetMatchingReleases(artistIds, genres, input.Period)
 
 	return releases
 }

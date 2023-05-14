@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"main/graph/model"
-	"main/models"
+	"main/types"
 	"strconv"
 	"strings"
 	"time"
@@ -12,8 +12,8 @@ import (
 	"github.com/lib/pq"
 )
 
-func GetMatchingReleases(ids []int, genres []string, period string) ([]models.DisplayRelease, error) {
-	var releases []models.DisplayRelease
+func GetMatchingReleases(ids []int, genres []string, period string) ([]*model.Release, error) {
+	var releases []*model.Release
 
 	now := time.Now()
 	now = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
@@ -87,10 +87,10 @@ func GetMatchingReleases(ids []int, genres []string, period string) ([]models.Di
 	defer rows.Close()
 
 	for rows.Next() {
-		var release models.DisplayRelease
+		var release model.Release
 		var artists, featurings, genres, producers []string
 
-		if err := rows.Scan(&release.ID, pq.Array(&artists), pq.Array(&featurings), &release.Title, &release.Date, &release.Cover, pq.Array(&genres), pq.Array(&producers), pq.Array(&release.Tracklist), &release.Type, &release.AOTYID, &release.TrendingScore); err != nil {
+		if err := rows.Scan(&release.ID, pq.Array(&artists), pq.Array(&featurings), &release.Title, &release.Date, &release.Cover, pq.Array(&genres), pq.Array(&producers), pq.Array(&release.Tracklist), &release.Type, &release.AotyID, &release.TrendingScore); err != nil {
 			return nil, err
 		}
 
@@ -99,7 +99,7 @@ func GetMatchingReleases(ids []int, genres []string, period string) ([]models.Di
 		release.Genres = genres
 		release.Producers = producers
 
-		releases = append(releases, release)
+		releases = append(releases, &release)
 	}
 
 	if err := rows.Err(); err != nil {
@@ -308,7 +308,7 @@ func releasesCount(releaseType string, startDate time.Time, endDate time.Time) i
 
 }
 
-func AddOrUpdateRelease(releaseType string, release models.Release, updateTime time.Time) (int64, error) {
+func AddOrUpdateRelease(releaseType string, release types.Release, updateTime time.Time) (int64, error) {
 	var id int64
 	err := db.QueryRow("SELECT id FROM Releases WHERE aoty_id=$1", release.AOTY_Id).Scan(&id)
 	if err == nil {

@@ -29,6 +29,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 		customClaim, _ := validate.Claims.(*tools.JwtCustomClaim)
 
 		ctx := context.WithValue(r.Context(), authString("auth"), customClaim)
+		ctx = context.WithValue(ctx, authString("userID"), customClaim.ID)
 
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
@@ -37,5 +38,10 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 func CtxValue(ctx context.Context) *tools.JwtCustomClaim {
 	raw, _ := ctx.Value(authString("auth")).(*tools.JwtCustomClaim)
+	return raw
+}
+
+func CtxUserID(ctx context.Context) string {
+	raw, _ := ctx.Value(authString("userID")).(string)
 	return raw
 }

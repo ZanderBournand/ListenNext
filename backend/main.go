@@ -10,7 +10,7 @@ func main() {
 	db.Connect()
 
 	services.SpotifyScrapeTokens()
-	services.ScrapeReleases()
+	// services.ScrapeReleases()
 
 	api.Setup()
 }

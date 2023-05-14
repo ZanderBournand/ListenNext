@@ -3,11 +3,11 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"main/models"
+	"main/types"
 	"strings"
 )
 
-func AddOrUpdateGenres(releaseId int64, release models.Release) {
+func AddOrUpdateGenres(releaseId int64, release types.Release) {
 
 	for _, genre := range release.Genres {
 		compareType := strings.ToLower(strings.ReplaceAll(genre, " ", ""))
