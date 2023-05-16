@@ -9,7 +9,9 @@ import (
 func main() {
 	db.Connect()
 
+	services.SpotifyGeneralToken()
 	services.SpotifyScrapeTokens()
+
 	// services.ScrapeReleases()
 
 	api.Setup()

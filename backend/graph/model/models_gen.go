@@ -6,6 +6,20 @@ import (
 	"time"
 )
 
+type Artist struct {
+	SpotifyID             string            `json:"spotify_id"`
+	Name                  string            `json:"name"`
+	Image                 string            `json:"image"`
+	Genres                []*string         `json:"genres"`
+	RecentReleasesCount   int               `json:"recent_releases_count"`
+	UpcomingReleasesCount int               `json:"upcoming_releases_count"`
+	RecentReleases        []*Release        `json:"recent_releases"`
+	UpcomingReleases      []*Release        `json:"upcoming_releases"`
+	TopTracks             []*SpotifyRelease `json:"top_tracks"`
+	Singles               []*SpotifyRelease `json:"singles"`
+	Albums                []*SpotifyRelease `json:"albums"`
+}
+
 type AuthOps struct {
 	Login        interface{} `json:"login"`
 	Register     interface{} `json:"register"`
@@ -35,6 +49,7 @@ type Release struct {
 	Type          string    `json:"type"`
 	AotyID        *string   `json:"aoty_id,omitempty"`
 	TrendingScore *float64  `json:"trending_score,omitempty"`
+	ArtistRole    string    `json:"artist_role"`
 }
 
 type ReleasesInput struct {
@@ -48,4 +63,13 @@ type ReleasesList struct {
 	Releases []*Release `json:"releases"`
 	Prev     bool       `json:"prev"`
 	Next     bool       `json:"next"`
+}
+
+type SpotifyRelease struct {
+	SpotifyReleaseID string    `json:"spotify_release_id"`
+	Title            string    `json:"title"`
+	Cover            string    `json:"cover"`
+	Artists          []*Artist `json:"artists"`
+	Date             time.Time `json:"date"`
+	Type             string    `json:"type"`
 }

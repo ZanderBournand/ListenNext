@@ -3,8 +3,13 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"main/graph/model"
 	"main/types"
 	"strings"
+	"sync"
+	"time"
+
+	"github.com/lib/pq"
 )
 
 func GetMatchingArtists(artists []types.SpotifyArtist, genres []string) []int {
@@ -103,7 +108,6 @@ func UploadArtist(artist string, spotifyArtist *types.SpotifyArtist) (int64, int
 }
 
 func AddOrUpdateArtistGenres(artistId int64, genres []string) {
-
 	for _, genre := range genres {
 		compareType := strings.ToLower(strings.ReplaceAll(genre, " ", ""))
 
@@ -122,5 +126,229 @@ func AddOrUpdateArtistGenres(artistId int64, genres []string) {
 			}
 		}
 	}
+}
 
+func FindArtistReleaseCount(artist *model.Artist) error {
+	now := time.Now()
+	now = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+
+	recentStart := now
+	recentEnd := now
+	upcomingStart := now
+	upcomingEnd := now
+
+	recentStart = recentStart.AddDate(0, 0, -14)
+	daysUntilFriday := (5 - int(recentStart.Weekday()) + 7) % 7
+	recentStart = recentStart.AddDate(0, 0, daysUntilFriday+1)
+	recentEnd = recentEnd.AddDate(0, 0, -7)
+	daysUntilFriday = (5 - int(recentEnd.Weekday()) + 7) % 7
+	recentEnd = recentEnd.AddDate(0, 0, daysUntilFriday)
+
+	upcomingStart = upcomingStart.AddDate(0, 0, -7)
+	daysUntilFriday = (5 - int(upcomingStart.Weekday()) + 7) % 7
+	upcomingStart = upcomingStart.AddDate(0, 0, daysUntilFriday+1)
+	upcomingEnd = upcomingEnd.AddDate(0, 0, 84)
+	daysUntilFriday = (5 - int(upcomingEnd.Weekday()) + 7) % 7
+	upcomingEnd = upcomingEnd.AddDate(0, 0, daysUntilFriday)
+
+	query := `
+		SELECT
+			COUNT(*) FILTER (WHERE r.date >= $2 AND r.date <= $3) AS recent_release_count,
+			COUNT(*) FILTER (WHERE r.date >= $4 AND r.date <= $5) AS upcoming_release_count
+		FROM releases AS r
+		JOIN releases_artists AS ra ON r.id = ra.release_id
+		JOIN artists AS a ON ra.artist_id = a.id
+		WHERE a.spotify_id = $1
+	`
+
+	var recentReleaseCount, upcomingReleaseCount int
+	err := db.QueryRow(query, artist.SpotifyID, recentStart, recentEnd, upcomingStart, upcomingEnd).Scan(&recentReleaseCount, &upcomingReleaseCount)
+	if err != nil {
+		return err
+	}
+
+	artist.RecentReleasesCount = recentReleaseCount
+	artist.UpcomingReleasesCount = upcomingReleaseCount
+
+	return nil
+}
+
+func FindArtistRecentReleases(artist *model.Artist) error {
+	now := time.Now()
+	now = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+
+	recentStart := now
+	recentEnd := now
+
+	recentStart = recentStart.AddDate(0, 0, -14)
+	daysUntilFriday := (5 - int(recentStart.Weekday()) + 7) % 7
+	recentStart = recentStart.AddDate(0, 0, daysUntilFriday+1)
+	recentEnd = recentEnd.AddDate(0, 0, -7)
+	daysUntilFriday = (5 - int(recentEnd.Weekday()) + 7) % 7
+	recentEnd = recentEnd.AddDate(0, 0, daysUntilFriday)
+
+	query := `
+		SELECT r.id, r.title, array_agg(DISTINCT main.name) AS artists, array_agg(DISTINCT COALESCE(feature.name, '')) AS featurings,
+			r.date, r.cover, array_agg(DISTINCT COALESCE(g.type, '')) AS genres, array_agg(DISTINCT COALESCE(p.name, '')) AS producers,
+			r.tracklist, r.type, r.aoty_id, r.trending_score, $1 as relationship
+		FROM releases AS r
+		JOIN releases_artists AS ra ON r.id = ra.release_id AND ra.relationship = 'main'
+		JOIN artists AS main ON ra.artist_id = main.id
+		LEFT JOIN releases_artists AS raf ON r.id = raf.release_id AND raf.relationship = 'feature'
+		LEFT JOIN artists AS feature ON raf.artist_id = feature.id
+		LEFT JOIN releases_producers AS rp ON r.id = rp.release_id
+		LEFT JOIN producers AS p ON rp.producer_id = p.id
+		LEFT JOIN releases_genres AS rg ON r.id = rg.release_id
+		LEFT JOIN genres AS g ON rg.genre_id = g.id
+	`
+
+	artistRoles := []string{"main", "feature"}
+
+	var releases []*model.Release
+
+	errCh := make(chan error, len(artistRoles))
+	var wg sync.WaitGroup
+	wg.Add(len(artistRoles))
+
+	for _, artistRole := range artistRoles {
+		go func(artistRole string) {
+			defer wg.Done()
+
+			finalQuery := query
+
+			finalQuery += fmt.Sprintf(" WHERE %s.spotify_id = '%s'", artistRole, artist.SpotifyID)
+			finalQuery += fmt.Sprintf(" AND r.date >= '%s' AND r.date <= '%s'", recentStart.Format("2006-01-02"), recentEnd.Format("2006-01-02"))
+			finalQuery += "GROUP BY r.id"
+
+			rows, err := db.Query(finalQuery, artistRole)
+			if err != nil {
+				errCh <- err
+				return
+			}
+			defer rows.Close()
+
+			for rows.Next() {
+				var release model.Release
+				err := rows.Scan(
+					&release.ID,
+					&release.Title,
+					pq.Array(&release.Artists),
+					pq.Array(&release.Featurings),
+					&release.Date,
+					&release.Cover,
+					pq.Array(&release.Genres),
+					pq.Array(&release.Producers),
+					pq.Array(&release.Tracklist),
+					&release.Type,
+					&release.AotyID,
+					&release.TrendingScore,
+					&release.ArtistRole,
+				)
+				if err != nil {
+					errCh <- err
+					return
+				}
+
+				releases = append(releases, &release)
+			}
+
+			if err = rows.Err(); err != nil {
+				errCh <- err
+				return
+			}
+		}(artistRole)
+	}
+
+	go func() {
+		wg.Wait()
+		close(errCh)
+	}()
+
+	for err := range errCh {
+		if err != nil {
+			return err
+		}
+	}
+
+	artist.RecentReleases = releases
+
+	return nil
+}
+
+func FindArtistUpcomingReleases(artist *model.Artist) error {
+	now := time.Now()
+	now = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
+
+	upcomingStart := now
+	upcomingEnd := now
+
+	upcomingStart = upcomingStart.AddDate(0, 0, -7)
+	daysUntilFriday := (5 - int(upcomingStart.Weekday()) + 7) % 7
+	upcomingStart = upcomingStart.AddDate(0, 0, daysUntilFriday+1)
+	upcomingEnd = upcomingEnd.AddDate(0, 0, 84)
+	daysUntilFriday = (5 - int(upcomingEnd.Weekday()) + 7) % 7
+	upcomingEnd = upcomingEnd.AddDate(0, 0, daysUntilFriday)
+
+	query := `
+		SELECT r.id, r.title, array_agg(DISTINCT a.name) AS artists, array_agg(DISTINCT COALESCE(f.name, '')) AS featurings,
+			r.date, r.cover, array_agg(DISTINCT COALESCE(g.type, '')) AS genres, array_agg(DISTINCT COALESCE(p.name, '')) AS producers,
+			r.tracklist, r.type, r.aoty_id, r.trending_score,
+			CASE
+				WHEN a.spotify_id = $1 THEN 'main'
+				WHEN f.spotify_id = $1 THEN 'feature'
+				ELSE ''
+			END AS relationship
+		FROM releases AS r
+		JOIN releases_artists AS ra ON r.id = ra.release_id AND ra.relationship = 'main'
+		JOIN artists AS a ON ra.artist_id = a.id
+		LEFT JOIN releases_artists AS raf ON r.id = raf.release_id AND raf.relationship = 'feature'
+		LEFT JOIN artists AS f ON raf.artist_id = f.id
+		LEFT JOIN releases_producers AS rp ON r.id = rp.release_id
+		LEFT JOIN producers AS p ON rp.producer_id = p.id
+		LEFT JOIN releases_genres AS rg ON r.id = rg.release_id
+		LEFT JOIN genres AS g ON rg.genre_id = g.id
+		WHERE (a.spotify_id = $1 OR f.spotify_id = $1)
+	`
+
+	query += fmt.Sprintf(" AND r.date >= '%s' AND r.date <= '%s'", upcomingStart.Format("2006-01-02"), upcomingEnd.Format("2006-01-02"))
+	query += "GROUP BY r.id, a.spotify_id, f.spotify_id"
+
+	rows, err := db.Query(query, artist.SpotifyID)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	var releases []*model.Release
+	for rows.Next() {
+		var release model.Release
+		err := rows.Scan(
+			&release.ID,
+			&release.Title,
+			pq.Array(&release.Artists),
+			pq.Array(&release.Featurings),
+			&release.Date,
+			&release.Cover,
+			pq.Array(&release.Genres),
+			pq.Array(&release.Producers),
+			pq.Array(&release.Tracklist),
+			&release.Type,
+			&release.AotyID,
+			&release.TrendingScore,
+			&release.ArtistRole,
+		)
+		if err != nil {
+			return err
+		}
+
+		releases = append(releases, &release)
+	}
+
+	if err = rows.Err(); err != nil {
+		return err
+	}
+
+	artist.UpcomingReleases = releases
+
+	return nil
 }

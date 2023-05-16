@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"main/config"
+	"main/graph/model"
 	"main/types"
 	"math/rand"
 	"net/http"
@@ -581,4 +582,286 @@ func SpotifyRefreshToken(refreshToken string) (string, int, error) {
 	}
 
 	return token.AccessToken, token.ExpirationIn, nil
+}
+
+func SpotifySearchArtists(query string) ([]*model.Artist, error) {
+	queryLimit := 10
+
+	spotifyURL := fmt.Sprintf("https://api.spotify.com/v1/search?type=artist&q=%s&limit=%d", url.QueryEscape(query), queryLimit)
+
+	req, err := http.NewRequest("GET", spotifyURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+generalToken)
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil || res.StatusCode != 200 {
+		fmt.Println("SPOTIFY ERROR!!!!")
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	var data map[string]interface{}
+	err = json.NewDecoder(res.Body).Decode(&data)
+	if err != nil {
+		return nil, err
+	}
+
+	var spotifyArtists []*model.Artist
+
+	artists := data["artists"].(map[string]interface{})["items"].([]interface{})
+	for _, artist := range artists {
+		var spotifyArtist model.Artist
+
+		spotifyArtist.Name = artist.(map[string]interface{})["name"].(string)
+		spotifyArtist.SpotifyID = artist.(map[string]interface{})["id"].(string)
+
+		images := artist.(map[string]interface{})["images"].([]interface{})
+		if len(images) > 0 {
+			url := images[0].(map[string]interface{})["url"].(string)
+			spotifyArtist.Image = url
+		}
+
+		spotifyArtists = append(spotifyArtists, &spotifyArtist)
+	}
+
+	return spotifyArtists, nil
+}
+
+func SpotifyArtist(spotifyId string) (*model.Artist, error) {
+	spotifyURL := fmt.Sprintf("https://api.spotify.com/v1/artists/%s", spotifyId)
+
+	req, err := http.NewRequest("GET", spotifyURL, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+generalToken)
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil || res.StatusCode != 200 {
+		fmt.Println("SPOTIFY ERROR!!!!")
+		return nil, err
+	}
+	defer res.Body.Close()
+
+	var data map[string]interface{}
+	err = json.NewDecoder(res.Body).Decode(&data)
+	if err != nil {
+		return nil, err
+	}
+
+	var artist model.Artist
+	artist.SpotifyID = spotifyId
+	artist.Name = data["name"].(string)
+
+	images := data["images"].([]interface{})
+	if len(images) > 0 {
+		imageURL := images[0].(map[string]interface{})["url"].(string)
+		artist.Image = imageURL
+	}
+
+	genres := data["genres"].([]interface{})
+	for _, genre := range genres {
+		genreStr := genre.(string)
+		artist.Genres = append(artist.Genres, &genreStr)
+	}
+
+	return &artist, nil
+}
+
+func SpotifyArtistTopTracks(artist *model.Artist) error {
+	endpoint := fmt.Sprintf("https://api.spotify.com/v1/artists/%s/top-tracks?country=US", artist.SpotifyID)
+
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+generalToken)
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil || res.StatusCode != 200 {
+		fmt.Println("SPOTIFY ERROR!!!!")
+		return err
+	}
+	defer res.Body.Close()
+
+	var data struct {
+		Tracks []struct {
+			Name  string `json:"name"`
+			ID    string `json:"id"`
+			Album struct {
+				ReleaseDate string `json:"release_date"`
+				Images      []struct {
+					URL string `json:"url"`
+				} `json:"images"`
+			} `json:"album"`
+			Artists []struct {
+				Name      string `json:"name"`
+				SpotifyId string `json:"id"`
+			} `json:"artists"`
+			Type string `json:"type"`
+		} `json:"tracks"`
+	}
+
+	err = json.NewDecoder(res.Body).Decode(&data)
+	if err != nil {
+		return err
+	}
+
+	var topTracks []*model.SpotifyRelease
+
+	for _, track := range data.Tracks {
+		releaseDate, err := time.Parse("2006-01-02", track.Album.ReleaseDate)
+		if err != nil {
+			return err
+		}
+
+		spotifyRelease := &model.SpotifyRelease{
+			Title:            track.Name,
+			SpotifyReleaseID: track.ID,
+			Date:             releaseDate,
+			Type:             track.Type,
+			Cover:            track.Album.Images[0].URL,
+			Artists:          make([]*model.Artist, len(track.Artists)),
+		}
+
+		for i, artist := range track.Artists {
+			spotifyRelease.Artists[i] = &model.Artist{
+				Name:      artist.Name,
+				SpotifyID: artist.SpotifyId,
+			}
+		}
+
+		topTracks = append(topTracks, spotifyRelease)
+	}
+
+	artist.TopTracks = topTracks
+
+	return nil
+}
+
+func SpotifyArtistSingles(artist *model.Artist) error {
+	endpoint := fmt.Sprintf("https://api.spotify.com/v1/artists/%s/albums?album_type=single&limit=10", artist.SpotifyID)
+
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+generalToken)
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil || res.StatusCode != 200 {
+		fmt.Println("SPOTIFY ERROR!!!!")
+		return err
+	}
+	defer res.Body.Close()
+
+	var data map[string]interface{}
+	err = json.NewDecoder(res.Body).Decode(&data)
+	if err != nil {
+		return err
+	}
+
+	var singles []*model.SpotifyRelease
+
+	items := data["items"].([]interface{})
+	for _, album := range items {
+		albumData := album.(map[string]interface{})
+		var spotifyRelease model.SpotifyRelease
+
+		spotifyRelease.Title = albumData["name"].(string)
+		spotifyRelease.SpotifyReleaseID = albumData["id"].(string)
+		spotifyRelease.Cover = albumData["images"].([]interface{})[0].(map[string]interface{})["url"].(string)
+
+		artistsData := albumData["artists"].([]interface{})
+		artists := make([]*model.Artist, len(artistsData))
+		for i, artistData := range artistsData {
+			artist := &model.Artist{
+				SpotifyID: artistData.(map[string]interface{})["id"].(string),
+				Name:      artistData.(map[string]interface{})["name"].(string),
+			}
+			artists[i] = artist
+		}
+		spotifyRelease.Artists = artists
+
+		releaseDate, err := time.Parse("2006-01-02", albumData["release_date"].(string))
+		if err != nil {
+			return err
+		}
+		spotifyRelease.Date = releaseDate
+
+		spotifyRelease.Type = albumData["album_type"].(string)
+
+		singles = append(singles, &spotifyRelease)
+	}
+
+	artist.Singles = singles
+
+	return nil
+}
+
+func SpotifyArtistAlbums(artist *model.Artist) error {
+	endpoint := fmt.Sprintf("https://api.spotify.com/v1/artists/%s/albums?album_type=album&limit=10", artist.SpotifyID)
+
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Authorization", "Bearer "+generalToken)
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil || res.StatusCode != 200 {
+		fmt.Println("SPOTIFY ERROR!!!!")
+		return err
+	}
+	defer res.Body.Close()
+
+	var data map[string]interface{}
+	err = json.NewDecoder(res.Body).Decode(&data)
+	if err != nil {
+		return err
+	}
+
+	var albums []*model.SpotifyRelease
+
+	items := data["items"].([]interface{})
+	for _, album := range items {
+		albumData := album.(map[string]interface{})
+		var spotifyRelease model.SpotifyRelease
+
+		spotifyRelease.Title = albumData["name"].(string)
+		spotifyRelease.SpotifyReleaseID = albumData["id"].(string)
+		spotifyRelease.Cover = albumData["images"].([]interface{})[0].(map[string]interface{})["url"].(string)
+
+		artistsData := albumData["artists"].([]interface{})
+		artists := make([]*model.Artist, len(artistsData))
+		for i, artistData := range artistsData {
+			artist := &model.Artist{
+				SpotifyID: artistData.(map[string]interface{})["id"].(string),
+				Name:      artistData.(map[string]interface{})["name"].(string),
+			}
+			artists[i] = artist
+		}
+		spotifyRelease.Artists = artists
+
+		releaseDate, err := time.Parse("2006-01-02", albumData["release_date"].(string))
+		if err != nil {
+			return err
+		}
+		spotifyRelease.Date = releaseDate
+
+		spotifyRelease.Type = albumData["album_type"].(string)
+
+		albums = append(albums, &spotifyRelease)
+	}
+
+	artist.Albums = albums
+
+	return nil
 }

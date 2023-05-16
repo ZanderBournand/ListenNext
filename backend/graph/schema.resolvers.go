@@ -56,6 +56,16 @@ func (r *queryResolver) Recommendations(ctx context.Context, input model.Recomme
 	return services.GetRecommendations(ctx, input), nil
 }
 
+// SearchArtists is the resolver for the searchArtists field.
+func (r *queryResolver) SearchArtists(ctx context.Context, query string) ([]*model.Artist, error) {
+	return services.SearchArtists(ctx, query), nil
+}
+
+// Artist is the resolver for the artist field.
+func (r *queryResolver) Artist(ctx context.Context, spotifyID string) (*model.Artist, error) {
+	return services.GetArtist(spotifyID), nil
+}
+
 // AuthOps returns AuthOpsResolver implementation.
 func (r *Resolver) AuthOps() AuthOpsResolver { return &authOpsResolver{r} }
 

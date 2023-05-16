@@ -27,6 +27,7 @@ type Release {
   type: String!
   aoty_id: String
   trending_score: Float
+  artist_role: String!
 }
 
 type ReleasesList {
@@ -39,6 +40,29 @@ type User {
   _id: ID!
   display_name: String!
   email: String!
+}
+
+type Artist {
+  spotify_id: ID!
+  name: String!
+  image: String!
+  genres: [String]!
+  recent_releases_count: Int!
+  upcoming_releases_count: Int!
+  recent_releases: [Release]!
+  upcoming_releases: [Release]!
+  top_tracks: [SpotifyRelease]!
+  singles: [SpotifyRelease]!
+  albums: [SpotifyRelease]!
+}
+
+type SpotifyRelease {
+  spotify_release_id: ID!
+  title: String!
+  cover: String!
+  artists: [Artist!]!
+  date: Time!
+  type: String!
 }
 
 type AuthOps {
@@ -56,6 +80,8 @@ type Query {
   recommendations(input: RecommendationsInput!): [Release]!
     @goField(forceResolver: true)
     @spotify
+  searchArtists(query: String!): [Artist]! @goField(forceResolver: true)
+  artist(spotify_id: String!): Artist! @goField(forceResolver: true)
 }
 
 type Mutation {

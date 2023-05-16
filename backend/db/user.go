@@ -89,7 +89,6 @@ func GetSpotifyUserTokens(id string) (string, string, time.Time) {
 	err := db.QueryRow("SELECT access_token, refresh_token, token_expiration FROM users WHERE id = $1", id).Scan(&accessToken, &refreshToken, &tokenExpiration)
 	if err != nil {
 		fmt.Println(err)
-		fmt.Println("DADAD")
 		return "", "", time.Time{}
 	}
 
