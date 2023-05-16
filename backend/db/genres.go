@@ -8,7 +8,6 @@ import (
 )
 
 func AddOrUpdateGenres(releaseId int64, release types.Release) {
-
 	for _, genre := range release.Genres {
 		compareType := strings.ToLower(strings.ReplaceAll(genre, " ", ""))
 
@@ -27,5 +26,4 @@ func AddOrUpdateGenres(releaseId int64, release types.Release) {
 			}
 		}
 	}
-
 }

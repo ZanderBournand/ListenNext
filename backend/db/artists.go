@@ -31,13 +31,13 @@ func GetMatchingArtists(artists []types.SpotifyArtist, genres []string) []int {
 	    SELECT id
 	    FROM Artists
 	    WHERE spotify_id IN (` + strings.Join(allIDs, ",") + `)
-	        OR EXISTS (
-	            SELECT 1
-	            FROM Artists_Genres
-	            JOIN Genres ON Artists_Genres.genre_id = Genres.id
-	            WHERE Artists_Genres.artist_id = Artists.id
-	                AND Genres.compare_type IN (` + strings.Join(allGenres, ",") + `)
-	        )
+		OR EXISTS (
+		SELECT 1
+		FROM Artists_Genres
+		JOIN Genres ON Artists_Genres.genre_id = Genres.id
+		WHERE Artists_Genres.artist_id = Artists.id
+		AND Genres.compare_type IN (` + strings.Join(allGenres, ",") + `)
+		)
 	`
 
 	rows, err := db.Query(query)
@@ -153,8 +153,8 @@ func FindArtistReleaseCount(artist *model.Artist) error {
 
 	query := `
 		SELECT
-			COUNT(*) FILTER (WHERE r.date >= $2 AND r.date <= $3) AS recent_release_count,
-			COUNT(*) FILTER (WHERE r.date >= $4 AND r.date <= $5) AS upcoming_release_count
+		COUNT(*) FILTER (WHERE r.date >= $2 AND r.date <= $3) AS recent_release_count,
+		COUNT(*) FILTER (WHERE r.date >= $4 AND r.date <= $5) AS upcoming_release_count
 		FROM releases AS r
 		JOIN releases_artists AS ra ON r.id = ra.release_id
 		JOIN artists AS a ON ra.artist_id = a.id
@@ -167,8 +167,8 @@ func FindArtistReleaseCount(artist *model.Artist) error {
 		return err
 	}
 
-	artist.RecentReleasesCount = recentReleaseCount
-	artist.UpcomingReleasesCount = upcomingReleaseCount
+	artist.RecentReleasesCount = &recentReleaseCount
+	artist.UpcomingReleasesCount = &upcomingReleaseCount
 
 	return nil
 }
@@ -215,7 +215,7 @@ func FindArtistRecentReleases(artist *model.Artist) error {
 
 			finalQuery := query
 
-			finalQuery += fmt.Sprintf(" WHERE %s.spotify_id = '%s'", artistRole, artist.SpotifyID)
+			finalQuery += fmt.Sprintf(" WHERE %s.spotify_id = '%s'", artistRole, *artist.SpotifyID)
 			finalQuery += fmt.Sprintf(" AND r.date >= '%s' AND r.date <= '%s'", recentStart.Format("2006-01-02"), recentEnd.Format("2006-01-02"))
 			finalQuery += "GROUP BY r.id"
 
@@ -227,54 +227,30 @@ func FindArtistRecentReleases(artist *model.Artist) error {
 			defer rows.Close()
 
 			for rows.Next() {
-				var release model.Release
-				var artists, featurings, artistsSpotifyIDs, featuringsSpotifyIDs []string
+				var scanRelease types.ScanRelease
 				err := rows.Scan(
-					&release.ID,
-					&release.Title,
-					pq.Array(&artists),
-					pq.Array(&featurings),
-					pq.Array(&artistsSpotifyIDs),
-					pq.Array(&featuringsSpotifyIDs),
-					&release.ReleaseDate,
-					&release.Cover,
-					pq.Array(&release.Genres),
-					pq.Array(&release.Producers),
-					pq.Array(&release.Tracklist),
-					&release.Type,
-					&release.AotyID,
-					&release.TrendingScore,
-					&release.ArtistRole,
+					&scanRelease.ID,
+					&scanRelease.Title,
+					pq.Array(&scanRelease.Artists),
+					pq.Array(&scanRelease.Featurings),
+					pq.Array(&scanRelease.ArtistsIds),
+					pq.Array(&scanRelease.FeaturingsIds),
+					&scanRelease.ReleaseDate,
+					&scanRelease.Cover,
+					pq.Array(&scanRelease.Genres),
+					pq.Array(&scanRelease.Producers),
+					pq.Array(&scanRelease.Tracklist),
+					&scanRelease.Type,
+					&scanRelease.AotyID,
+					&scanRelease.TrendingScore,
+					&scanRelease.ArtistRole,
 				)
 				if err != nil {
 					errCh <- err
 					return
 				}
 
-				var releaseArtists []*model.Artist
-				var releaseFeaturings []*model.Artist
-
-				for i, artist := range artists {
-					var releaseArtist model.Artist
-
-					releaseArtist.Name = artist
-					releaseArtist.SpotifyID = artistsSpotifyIDs[i]
-
-					releaseArtists = append(releaseArtists, &releaseArtist)
-				}
-
-				for i, featuring := range featurings {
-					var releaseFeaturing model.Artist
-
-					releaseFeaturing.Name = featuring
-					releaseFeaturing.SpotifyID = featuringsSpotifyIDs[i]
-
-					releaseFeaturings = append(releaseFeaturings, &releaseFeaturing)
-				}
-
-				release.Artists = releaseArtists
-				release.Featurings = releaseFeaturings
-
+				release := types.ScanToRelease(scanRelease)
 				releases = append(releases, &release)
 			}
 
@@ -342,7 +318,7 @@ func FindArtistUpcomingReleases(artist *model.Artist) error {
 
 			finalQuery := query
 
-			finalQuery += fmt.Sprintf(" WHERE %s.spotify_id = '%s'", artistRole, artist.SpotifyID)
+			finalQuery += fmt.Sprintf(" WHERE %s.spotify_id = '%s'", artistRole, *artist.SpotifyID)
 			finalQuery += fmt.Sprintf(" AND r.date >= '%s' AND r.date <= '%s'", upcomingStart.Format("2006-01-02"), upcomingEnd.Format("2006-01-02"))
 			finalQuery += "GROUP BY r.id"
 
@@ -354,86 +330,30 @@ func FindArtistUpcomingReleases(artist *model.Artist) error {
 			defer rows.Close()
 
 			for rows.Next() {
-				var release model.Release
-				var cover, aoty_id sql.NullString
-				var trending_score sql.NullFloat64
-				var artists, featurings, artistsSpotifyIDs, featuringsSpotifyIDs, genres, producers, tracklist []sql.NullString
+				var scanRelease types.ScanRelease
 				err := rows.Scan(
-					&release.ID,
-					&release.Title,
-					pq.Array(&artists),
-					pq.Array(&featurings),
-					pq.Array(&artistsSpotifyIDs),
-					pq.Array(&featuringsSpotifyIDs),
-					&release.ReleaseDate,
-					&cover,
-					pq.Array(&genres),
-					pq.Array(&producers),
-					pq.Array(&tracklist),
-					&release.Type,
-					&aoty_id,
-					&trending_score,
-					&release.ArtistRole,
+					&scanRelease.ID,
+					&scanRelease.Title,
+					pq.Array(&scanRelease.Artists),
+					pq.Array(&scanRelease.Featurings),
+					pq.Array(&scanRelease.ArtistsIds),
+					pq.Array(&scanRelease.FeaturingsIds),
+					&scanRelease.ReleaseDate,
+					&scanRelease.Cover,
+					pq.Array(&scanRelease.Genres),
+					pq.Array(&scanRelease.Producers),
+					pq.Array(&scanRelease.Tracklist),
+					&scanRelease.Type,
+					&scanRelease.AotyID,
+					&scanRelease.TrendingScore,
+					&scanRelease.ArtistRole,
 				)
 				if err != nil {
 					errCh <- err
 					return
 				}
 
-				if cover.Valid {
-					release.Cover = &cover.String
-				}
-				if aoty_id.Valid {
-					release.AotyID = &aoty_id.String
-				}
-				if trending_score.Valid {
-					release.TrendingScore = &trending_score.Float64
-				}
-
-				var releaseArtists []*model.Artist
-				var releaseFeaturings []*model.Artist
-				var releaseGenres []string
-				var releaseProducers []string
-				var releaseTracklist []string
-
-				for i, artist := range artists {
-					if artist.Valid {
-						var releaseArtist model.Artist
-						releaseArtist.Name = artist.String
-						releaseArtist.SpotifyID = artistsSpotifyIDs[i].String
-						releaseArtists = append(releaseArtists, &releaseArtist)
-					}
-				}
-				for i, featuring := range featurings {
-					if featuring.Valid {
-						var releaseFeaturing model.Artist
-						releaseFeaturing.Name = featuring.String
-						releaseFeaturing.SpotifyID = featuringsSpotifyIDs[i].String
-						releaseFeaturings = append(releaseFeaturings, &releaseFeaturing)
-					}
-				}
-				for _, genre := range genres {
-					if genre.Valid {
-						releaseGenres = append(releaseGenres, genre.String)
-					}
-				}
-				for _, producer := range producers {
-					if producer.Valid {
-						releaseProducers = append(releaseProducers, producer.String)
-					}
-				}
-				for _, track := range tracklist {
-					if track.Valid {
-						releaseTracklist = append(releaseTracklist, track.String)
-					}
-				}
-
-				release.Artists = releaseArtists
-				release.Featurings = releaseFeaturings
-				release.Genres = releaseGenres
-				release.Producers = releaseProducers
-				release.Tracklist = releaseTracklist
-
+				release := types.ScanToRelease(scanRelease)
 				releases = append(releases, &release)
 			}
 

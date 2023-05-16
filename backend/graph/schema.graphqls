@@ -15,19 +15,20 @@ scalar Any
 scalar Time
 
 type Release {
-  _id: Int!
+  _id: Int
   title: String!
   artists: [Artist!]!
-  featurings: [Artist]
+  featurings: [Artist!]
   release_date: Time!
   cover: String
   genres: [String!]
   producers: [String!]
   tracklist: [String!]
   type: String!
-  aoty_id: String
+  aoty_id: ID
+  spotify_id: ID
   trending_score: Float
-  artist_role: String!
+  artist_role: String
 }
 
 type ReleasesList {
@@ -43,26 +44,17 @@ type User {
 }
 
 type Artist {
-  spotify_id: ID!
+  spotify_id: ID
   name: String!
-  image: String!
-  genres: [String]!
-  recent_releases_count: Int!
-  upcoming_releases_count: Int!
-  recent_releases: [Release]!
-  upcoming_releases: [Release]!
-  top_tracks: [SpotifyRelease]!
-  singles: [SpotifyRelease]!
-  albums: [SpotifyRelease]!
-}
-
-type SpotifyRelease {
-  spotify_release_id: ID!
-  title: String!
-  cover: String!
-  artists: [Artist!]!
-  release_date: Time!
-  type: String!
+  image: String
+  genres: [String!]
+  recent_releases_count: Int
+  upcoming_releases_count: Int
+  recent_releases: [Release!]
+  upcoming_releases: [Release!]
+  top_tracks: [Release!]
+  singles: [Release!]
+  albums: [Release!]
 }
 
 type AuthOps {

@@ -39,7 +39,7 @@ func GetArtist(spotifyID string) *model.Artist {
 
 		err := SpotifyArtistTopTracks(artist)
 		if err != nil {
-			fmt.Println("Error fetching artist upcoming releases")
+			fmt.Println("Error fetching artist top tracks")
 		}
 	}(artist)
 
@@ -48,7 +48,7 @@ func GetArtist(spotifyID string) *model.Artist {
 
 		err := SpotifyArtistSingles(artist)
 		if err != nil {
-			fmt.Println("Error fetching artist upcoming releases")
+			fmt.Println("Error fetching artist singles")
 		}
 	}(artist)
 
@@ -57,7 +57,7 @@ func GetArtist(spotifyID string) *model.Artist {
 
 		err := SpotifyArtistAlbums(artist)
 		if err != nil {
-			fmt.Println("Error fetching artist upcoming releases")
+			fmt.Println("Error fetching artist albums")
 		}
 	}(artist)
 

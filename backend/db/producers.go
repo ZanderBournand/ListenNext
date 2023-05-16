@@ -8,7 +8,6 @@ import (
 )
 
 func AddOrUpdateProducers(releaseId int64, release types.Release) {
-
 	for _, producer := range release.Producers {
 		compareName := strings.ToLower(strings.ReplaceAll(producer, " ", ""))
 
@@ -27,5 +26,4 @@ func AddOrUpdateProducers(releaseId int64, release types.Release) {
 			}
 		}
 	}
-
 }

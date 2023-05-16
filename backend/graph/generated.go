@@ -92,6 +92,7 @@ type ComplexityRoot struct {
 		ID            func(childComplexity int) int
 		Producers     func(childComplexity int) int
 		ReleaseDate   func(childComplexity int) int
+		SpotifyID     func(childComplexity int) int
 		Title         func(childComplexity int) int
 		Tracklist     func(childComplexity int) int
 		TrendingScore func(childComplexity int) int
@@ -102,15 +103,6 @@ type ComplexityRoot struct {
 		Next     func(childComplexity int) int
 		Prev     func(childComplexity int) int
 		Releases func(childComplexity int) int
-	}
-
-	SpotifyRelease struct {
-		Artists          func(childComplexity int) int
-		Cover            func(childComplexity int) int
-		ReleaseDate      func(childComplexity int) int
-		SpotifyReleaseID func(childComplexity int) int
-		Title            func(childComplexity int) int
-		Type             func(childComplexity int) int
 	}
 
 	User struct {
@@ -407,6 +399,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Release.ReleaseDate(childComplexity), true
 
+	case "Release.spotify_id":
+		if e.complexity.Release.SpotifyID == nil {
+			break
+		}
+
+		return e.complexity.Release.SpotifyID(childComplexity), true
+
 	case "Release.title":
 		if e.complexity.Release.Title == nil {
 			break
@@ -455,48 +454,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ReleasesList.Releases(childComplexity), true
-
-	case "SpotifyRelease.artists":
-		if e.complexity.SpotifyRelease.Artists == nil {
-			break
-		}
-
-		return e.complexity.SpotifyRelease.Artists(childComplexity), true
-
-	case "SpotifyRelease.cover":
-		if e.complexity.SpotifyRelease.Cover == nil {
-			break
-		}
-
-		return e.complexity.SpotifyRelease.Cover(childComplexity), true
-
-	case "SpotifyRelease.release_date":
-		if e.complexity.SpotifyRelease.ReleaseDate == nil {
-			break
-		}
-
-		return e.complexity.SpotifyRelease.ReleaseDate(childComplexity), true
-
-	case "SpotifyRelease.spotify_release_id":
-		if e.complexity.SpotifyRelease.SpotifyReleaseID == nil {
-			break
-		}
-
-		return e.complexity.SpotifyRelease.SpotifyReleaseID(childComplexity), true
-
-	case "SpotifyRelease.title":
-		if e.complexity.SpotifyRelease.Title == nil {
-			break
-		}
-
-		return e.complexity.SpotifyRelease.Title(childComplexity), true
-
-	case "SpotifyRelease.type":
-		if e.complexity.SpotifyRelease.Type == nil {
-			break
-		}
-
-		return e.complexity.SpotifyRelease.Type(childComplexity), true
 
 	case "User.display_name":
 		if e.complexity.User.DisplayName == nil {
@@ -827,14 +784,11 @@ func (ec *executionContext) _Artist_spotify_id(ctx context.Context, field graphq
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
+	return ec.marshalOID2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Artist_spotify_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -915,14 +869,11 @@ func (ec *executionContext) _Artist_image(ctx context.Context, field graphql.Col
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Artist_image(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -959,14 +910,11 @@ func (ec *executionContext) _Artist_genres(ctx context.Context, field graphql.Co
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.([]*string)
+	res := resTmp.([]string)
 	fc.Result = res
-	return ec.marshalNString2ᚕᚖstring(ctx, field.Selections, res)
+	return ec.marshalOString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Artist_genres(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1003,14 +951,11 @@ func (ec *executionContext) _Artist_recent_releases_count(ctx context.Context, f
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(*int)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Artist_recent_releases_count(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1047,14 +992,11 @@ func (ec *executionContext) _Artist_upcoming_releases_count(ctx context.Context,
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(*int)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Artist_upcoming_releases_count(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1091,14 +1033,11 @@ func (ec *executionContext) _Artist_recent_releases(ctx context.Context, field g
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.([]*model.Release)
 	fc.Result = res
-	return ec.marshalNRelease2ᚕᚖmainᚋgraphᚋmodelᚐRelease(ctx, field.Selections, res)
+	return ec.marshalORelease2ᚕᚖmainᚋgraphᚋmodelᚐReleaseᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Artist_recent_releases(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1131,6 +1070,8 @@ func (ec *executionContext) fieldContext_Artist_recent_releases(ctx context.Cont
 				return ec.fieldContext_Release_type(ctx, field)
 			case "aoty_id":
 				return ec.fieldContext_Release_aoty_id(ctx, field)
+			case "spotify_id":
+				return ec.fieldContext_Release_spotify_id(ctx, field)
 			case "trending_score":
 				return ec.fieldContext_Release_trending_score(ctx, field)
 			case "artist_role":
@@ -1163,14 +1104,11 @@ func (ec *executionContext) _Artist_upcoming_releases(ctx context.Context, field
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.([]*model.Release)
 	fc.Result = res
-	return ec.marshalNRelease2ᚕᚖmainᚋgraphᚋmodelᚐRelease(ctx, field.Selections, res)
+	return ec.marshalORelease2ᚕᚖmainᚋgraphᚋmodelᚐReleaseᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Artist_upcoming_releases(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1203,6 +1141,8 @@ func (ec *executionContext) fieldContext_Artist_upcoming_releases(ctx context.Co
 				return ec.fieldContext_Release_type(ctx, field)
 			case "aoty_id":
 				return ec.fieldContext_Release_aoty_id(ctx, field)
+			case "spotify_id":
+				return ec.fieldContext_Release_spotify_id(ctx, field)
 			case "trending_score":
 				return ec.fieldContext_Release_trending_score(ctx, field)
 			case "artist_role":
@@ -1235,14 +1175,11 @@ func (ec *executionContext) _Artist_top_tracks(ctx context.Context, field graphq
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.SpotifyRelease)
+	res := resTmp.([]*model.Release)
 	fc.Result = res
-	return ec.marshalNSpotifyRelease2ᚕᚖmainᚋgraphᚋmodelᚐSpotifyRelease(ctx, field.Selections, res)
+	return ec.marshalORelease2ᚕᚖmainᚋgraphᚋmodelᚐReleaseᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Artist_top_tracks(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1253,20 +1190,36 @@ func (ec *executionContext) fieldContext_Artist_top_tracks(ctx context.Context, 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "spotify_release_id":
-				return ec.fieldContext_SpotifyRelease_spotify_release_id(ctx, field)
+			case "_id":
+				return ec.fieldContext_Release__id(ctx, field)
 			case "title":
-				return ec.fieldContext_SpotifyRelease_title(ctx, field)
-			case "cover":
-				return ec.fieldContext_SpotifyRelease_cover(ctx, field)
+				return ec.fieldContext_Release_title(ctx, field)
 			case "artists":
-				return ec.fieldContext_SpotifyRelease_artists(ctx, field)
+				return ec.fieldContext_Release_artists(ctx, field)
+			case "featurings":
+				return ec.fieldContext_Release_featurings(ctx, field)
 			case "release_date":
-				return ec.fieldContext_SpotifyRelease_release_date(ctx, field)
+				return ec.fieldContext_Release_release_date(ctx, field)
+			case "cover":
+				return ec.fieldContext_Release_cover(ctx, field)
+			case "genres":
+				return ec.fieldContext_Release_genres(ctx, field)
+			case "producers":
+				return ec.fieldContext_Release_producers(ctx, field)
+			case "tracklist":
+				return ec.fieldContext_Release_tracklist(ctx, field)
 			case "type":
-				return ec.fieldContext_SpotifyRelease_type(ctx, field)
+				return ec.fieldContext_Release_type(ctx, field)
+			case "aoty_id":
+				return ec.fieldContext_Release_aoty_id(ctx, field)
+			case "spotify_id":
+				return ec.fieldContext_Release_spotify_id(ctx, field)
+			case "trending_score":
+				return ec.fieldContext_Release_trending_score(ctx, field)
+			case "artist_role":
+				return ec.fieldContext_Release_artist_role(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type SpotifyRelease", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type Release", field.Name)
 		},
 	}
 	return fc, nil
@@ -1293,14 +1246,11 @@ func (ec *executionContext) _Artist_singles(ctx context.Context, field graphql.C
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.SpotifyRelease)
+	res := resTmp.([]*model.Release)
 	fc.Result = res
-	return ec.marshalNSpotifyRelease2ᚕᚖmainᚋgraphᚋmodelᚐSpotifyRelease(ctx, field.Selections, res)
+	return ec.marshalORelease2ᚕᚖmainᚋgraphᚋmodelᚐReleaseᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Artist_singles(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1311,20 +1261,36 @@ func (ec *executionContext) fieldContext_Artist_singles(ctx context.Context, fie
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "spotify_release_id":
-				return ec.fieldContext_SpotifyRelease_spotify_release_id(ctx, field)
+			case "_id":
+				return ec.fieldContext_Release__id(ctx, field)
 			case "title":
-				return ec.fieldContext_SpotifyRelease_title(ctx, field)
-			case "cover":
-				return ec.fieldContext_SpotifyRelease_cover(ctx, field)
+				return ec.fieldContext_Release_title(ctx, field)
 			case "artists":
-				return ec.fieldContext_SpotifyRelease_artists(ctx, field)
+				return ec.fieldContext_Release_artists(ctx, field)
+			case "featurings":
+				return ec.fieldContext_Release_featurings(ctx, field)
 			case "release_date":
-				return ec.fieldContext_SpotifyRelease_release_date(ctx, field)
+				return ec.fieldContext_Release_release_date(ctx, field)
+			case "cover":
+				return ec.fieldContext_Release_cover(ctx, field)
+			case "genres":
+				return ec.fieldContext_Release_genres(ctx, field)
+			case "producers":
+				return ec.fieldContext_Release_producers(ctx, field)
+			case "tracklist":
+				return ec.fieldContext_Release_tracklist(ctx, field)
 			case "type":
-				return ec.fieldContext_SpotifyRelease_type(ctx, field)
+				return ec.fieldContext_Release_type(ctx, field)
+			case "aoty_id":
+				return ec.fieldContext_Release_aoty_id(ctx, field)
+			case "spotify_id":
+				return ec.fieldContext_Release_spotify_id(ctx, field)
+			case "trending_score":
+				return ec.fieldContext_Release_trending_score(ctx, field)
+			case "artist_role":
+				return ec.fieldContext_Release_artist_role(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type SpotifyRelease", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type Release", field.Name)
 		},
 	}
 	return fc, nil
@@ -1351,14 +1317,11 @@ func (ec *executionContext) _Artist_albums(ctx context.Context, field graphql.Co
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.SpotifyRelease)
+	res := resTmp.([]*model.Release)
 	fc.Result = res
-	return ec.marshalNSpotifyRelease2ᚕᚖmainᚋgraphᚋmodelᚐSpotifyRelease(ctx, field.Selections, res)
+	return ec.marshalORelease2ᚕᚖmainᚋgraphᚋmodelᚐReleaseᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Artist_albums(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -1369,20 +1332,36 @@ func (ec *executionContext) fieldContext_Artist_albums(ctx context.Context, fiel
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "spotify_release_id":
-				return ec.fieldContext_SpotifyRelease_spotify_release_id(ctx, field)
+			case "_id":
+				return ec.fieldContext_Release__id(ctx, field)
 			case "title":
-				return ec.fieldContext_SpotifyRelease_title(ctx, field)
-			case "cover":
-				return ec.fieldContext_SpotifyRelease_cover(ctx, field)
+				return ec.fieldContext_Release_title(ctx, field)
 			case "artists":
-				return ec.fieldContext_SpotifyRelease_artists(ctx, field)
+				return ec.fieldContext_Release_artists(ctx, field)
+			case "featurings":
+				return ec.fieldContext_Release_featurings(ctx, field)
 			case "release_date":
-				return ec.fieldContext_SpotifyRelease_release_date(ctx, field)
+				return ec.fieldContext_Release_release_date(ctx, field)
+			case "cover":
+				return ec.fieldContext_Release_cover(ctx, field)
+			case "genres":
+				return ec.fieldContext_Release_genres(ctx, field)
+			case "producers":
+				return ec.fieldContext_Release_producers(ctx, field)
+			case "tracklist":
+				return ec.fieldContext_Release_tracklist(ctx, field)
 			case "type":
-				return ec.fieldContext_SpotifyRelease_type(ctx, field)
+				return ec.fieldContext_Release_type(ctx, field)
+			case "aoty_id":
+				return ec.fieldContext_Release_aoty_id(ctx, field)
+			case "spotify_id":
+				return ec.fieldContext_Release_spotify_id(ctx, field)
+			case "trending_score":
+				return ec.fieldContext_Release_trending_score(ctx, field)
+			case "artist_role":
+				return ec.fieldContext_Release_artist_role(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type SpotifyRelease", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type Release", field.Name)
 		},
 	}
 	return fc, nil
@@ -1729,6 +1708,8 @@ func (ec *executionContext) fieldContext_Query_release(ctx context.Context, fiel
 				return ec.fieldContext_Release_type(ctx, field)
 			case "aoty_id":
 				return ec.fieldContext_Release_aoty_id(ctx, field)
+			case "spotify_id":
+				return ec.fieldContext_Release_spotify_id(ctx, field)
 			case "trending_score":
 				return ec.fieldContext_Release_trending_score(ctx, field)
 			case "artist_role":
@@ -1895,6 +1876,8 @@ func (ec *executionContext) fieldContext_Query_recommendations(ctx context.Conte
 				return ec.fieldContext_Release_type(ctx, field)
 			case "aoty_id":
 				return ec.fieldContext_Release_aoty_id(ctx, field)
+			case "spotify_id":
+				return ec.fieldContext_Release_spotify_id(ctx, field)
 			case "trending_score":
 				return ec.fieldContext_Release_trending_score(ctx, field)
 			case "artist_role":
@@ -2225,14 +2208,11 @@ func (ec *executionContext) _Release__id(ctx context.Context, field graphql.Coll
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(int)
+	res := resTmp.(*int)
 	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Release__id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2385,7 +2365,7 @@ func (ec *executionContext) _Release_featurings(ctx context.Context, field graph
 	}
 	res := resTmp.([]*model.Artist)
 	fc.Result = res
-	return ec.marshalOArtist2ᚕᚖmainᚋgraphᚋmodelᚐArtist(ctx, field.Selections, res)
+	return ec.marshalOArtist2ᚕᚖmainᚋgraphᚋmodelᚐArtistᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Release_featurings(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2702,7 +2682,7 @@ func (ec *executionContext) _Release_aoty_id(ctx context.Context, field graphql.
 	}
 	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+	return ec.marshalOID2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Release_aoty_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2712,7 +2692,48 @@ func (ec *executionContext) fieldContext_Release_aoty_id(ctx context.Context, fi
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Release_spotify_id(ctx context.Context, field graphql.CollectedField, obj *model.Release) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Release_spotify_id(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SpotifyID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOID2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Release_spotify_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Release",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2780,14 +2801,11 @@ func (ec *executionContext) _Release_artist_role(ctx context.Context, field grap
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Release_artist_role(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2864,6 +2882,8 @@ func (ec *executionContext) fieldContext_ReleasesList_releases(ctx context.Conte
 				return ec.fieldContext_Release_type(ctx, field)
 			case "aoty_id":
 				return ec.fieldContext_Release_aoty_id(ctx, field)
+			case "spotify_id":
+				return ec.fieldContext_Release_spotify_id(ctx, field)
 			case "trending_score":
 				return ec.fieldContext_Release_trending_score(ctx, field)
 			case "artist_role":
@@ -2958,294 +2978,6 @@ func (ec *executionContext) fieldContext_ReleasesList_next(ctx context.Context, 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SpotifyRelease_spotify_release_id(ctx context.Context, field graphql.CollectedField, obj *model.SpotifyRelease) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SpotifyRelease_spotify_release_id(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.SpotifyReleaseID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNID2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_SpotifyRelease_spotify_release_id(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SpotifyRelease",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SpotifyRelease_title(ctx context.Context, field graphql.CollectedField, obj *model.SpotifyRelease) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SpotifyRelease_title(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Title, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_SpotifyRelease_title(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SpotifyRelease",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SpotifyRelease_cover(ctx context.Context, field graphql.CollectedField, obj *model.SpotifyRelease) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SpotifyRelease_cover(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Cover, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_SpotifyRelease_cover(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SpotifyRelease",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SpotifyRelease_artists(ctx context.Context, field graphql.CollectedField, obj *model.SpotifyRelease) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SpotifyRelease_artists(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Artists, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]*model.Artist)
-	fc.Result = res
-	return ec.marshalNArtist2ᚕᚖmainᚋgraphᚋmodelᚐArtistᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_SpotifyRelease_artists(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SpotifyRelease",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "spotify_id":
-				return ec.fieldContext_Artist_spotify_id(ctx, field)
-			case "name":
-				return ec.fieldContext_Artist_name(ctx, field)
-			case "image":
-				return ec.fieldContext_Artist_image(ctx, field)
-			case "genres":
-				return ec.fieldContext_Artist_genres(ctx, field)
-			case "recent_releases_count":
-				return ec.fieldContext_Artist_recent_releases_count(ctx, field)
-			case "upcoming_releases_count":
-				return ec.fieldContext_Artist_upcoming_releases_count(ctx, field)
-			case "recent_releases":
-				return ec.fieldContext_Artist_recent_releases(ctx, field)
-			case "upcoming_releases":
-				return ec.fieldContext_Artist_upcoming_releases(ctx, field)
-			case "top_tracks":
-				return ec.fieldContext_Artist_top_tracks(ctx, field)
-			case "singles":
-				return ec.fieldContext_Artist_singles(ctx, field)
-			case "albums":
-				return ec.fieldContext_Artist_albums(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Artist", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SpotifyRelease_release_date(ctx context.Context, field graphql.CollectedField, obj *model.SpotifyRelease) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SpotifyRelease_release_date(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ReleaseDate, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(time.Time)
-	fc.Result = res
-	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_SpotifyRelease_release_date(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SpotifyRelease",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _SpotifyRelease_type(ctx context.Context, field graphql.CollectedField, obj *model.SpotifyRelease) (ret graphql.Marshaler) {
-	fc, err := ec.fieldContext_SpotifyRelease_type(ctx, field)
-	if err != nil {
-		return graphql.Null
-	}
-	ctx = graphql.WithFieldContext(ctx, fc)
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Type, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) fieldContext_SpotifyRelease_type(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "SpotifyRelease",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5310,9 +5042,6 @@ func (ec *executionContext) _Artist(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Values[i] = ec._Artist_spotify_id(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "name":
 
 			out.Values[i] = ec._Artist_name(ctx, field, obj)
@@ -5324,65 +5053,38 @@ func (ec *executionContext) _Artist(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Values[i] = ec._Artist_image(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "genres":
 
 			out.Values[i] = ec._Artist_genres(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "recent_releases_count":
 
 			out.Values[i] = ec._Artist_recent_releases_count(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "upcoming_releases_count":
 
 			out.Values[i] = ec._Artist_upcoming_releases_count(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "recent_releases":
 
 			out.Values[i] = ec._Artist_recent_releases(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "upcoming_releases":
 
 			out.Values[i] = ec._Artist_upcoming_releases(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "top_tracks":
 
 			out.Values[i] = ec._Artist_top_tracks(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "singles":
 
 			out.Values[i] = ec._Artist_singles(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "albums":
 
 			out.Values[i] = ec._Artist_albums(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5708,9 +5410,6 @@ func (ec *executionContext) _Release(ctx context.Context, sel ast.SelectionSet, 
 
 			out.Values[i] = ec._Release__id(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "title":
 
 			out.Values[i] = ec._Release_title(ctx, field, obj)
@@ -5763,6 +5462,10 @@ func (ec *executionContext) _Release(ctx context.Context, sel ast.SelectionSet, 
 
 			out.Values[i] = ec._Release_aoty_id(ctx, field, obj)
 
+		case "spotify_id":
+
+			out.Values[i] = ec._Release_spotify_id(ctx, field, obj)
+
 		case "trending_score":
 
 			out.Values[i] = ec._Release_trending_score(ctx, field, obj)
@@ -5771,9 +5474,6 @@ func (ec *executionContext) _Release(ctx context.Context, sel ast.SelectionSet, 
 
 			out.Values[i] = ec._Release_artist_role(ctx, field, obj)
 
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -5812,69 +5512,6 @@ func (ec *executionContext) _ReleasesList(ctx context.Context, sel ast.Selection
 		case "next":
 
 			out.Values[i] = ec._ReleasesList_next(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var spotifyReleaseImplementors = []string{"SpotifyRelease"}
-
-func (ec *executionContext) _SpotifyRelease(ctx context.Context, sel ast.SelectionSet, obj *model.SpotifyRelease) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, spotifyReleaseImplementors)
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("SpotifyRelease")
-		case "spotify_release_id":
-
-			out.Values[i] = ec._SpotifyRelease_spotify_release_id(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "title":
-
-			out.Values[i] = ec._SpotifyRelease_title(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "cover":
-
-			out.Values[i] = ec._SpotifyRelease_cover(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "artists":
-
-			out.Values[i] = ec._SpotifyRelease_artists(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "release_date":
-
-			out.Values[i] = ec._SpotifyRelease_release_date(ctx, field, obj)
-
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "type":
-
-			out.Values[i] = ec._SpotifyRelease_type(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -6551,44 +6188,6 @@ func (ec *executionContext) marshalNReleasesList2ᚖmainᚋgraphᚋmodelᚐRelea
 	return ec._ReleasesList(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNSpotifyRelease2ᚕᚖmainᚋgraphᚋmodelᚐSpotifyRelease(ctx context.Context, sel ast.SelectionSet, v []*model.SpotifyRelease) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalOSpotifyRelease2ᚖmainᚋgraphᚋmodelᚐSpotifyRelease(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	return ret
-}
-
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -6602,32 +6201,6 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
-}
-
-func (ec *executionContext) unmarshalNString2ᚕᚖstring(ctx context.Context, v interface{}) ([]*string, error) {
-	var vSlice []interface{}
-	if v != nil {
-		vSlice = graphql.CoerceList(v)
-	}
-	var err error
-	res := make([]*string, len(vSlice))
-	for i := range vSlice {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
-		res[i], err = ec.unmarshalOString2ᚖstring(ctx, vSlice[i])
-		if err != nil {
-			return nil, err
-		}
-	}
-	return res, nil
-}
-
-func (ec *executionContext) marshalNString2ᚕᚖstring(ctx context.Context, sel ast.SelectionSet, v []*string) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	for i := range v {
-		ret[i] = ec.marshalOString2ᚖstring(ctx, sel, v[i])
-	}
-
-	return ret
 }
 
 func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
@@ -6912,7 +6485,7 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
-func (ec *executionContext) marshalOArtist2ᚕᚖmainᚋgraphᚋmodelᚐArtist(ctx context.Context, sel ast.SelectionSet, v []*model.Artist) graphql.Marshaler {
+func (ec *executionContext) marshalOArtist2ᚕᚖmainᚋgraphᚋmodelᚐArtistᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Artist) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
@@ -6939,7 +6512,7 @@ func (ec *executionContext) marshalOArtist2ᚕᚖmainᚋgraphᚋmodelᚐArtist(c
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOArtist2ᚖmainᚋgraphᚋmodelᚐArtist(ctx, sel, v[i])
+			ret[i] = ec.marshalNArtist2ᚖmainᚋgraphᚋmodelᚐArtist(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -6949,6 +6522,12 @@ func (ec *executionContext) marshalOArtist2ᚕᚖmainᚋgraphᚋmodelᚐArtist(c
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
 
 	return ret
 }
@@ -7002,18 +6581,90 @@ func (ec *executionContext) marshalOFloat2ᚖfloat64(ctx context.Context, sel as
 	return graphql.WrapContextMarshaler(ctx, res)
 }
 
+func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v interface{}) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalID(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	res := graphql.MarshalID(*v)
+	return res
+}
+
+func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalInt(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	res := graphql.MarshalInt(*v)
+	return res
+}
+
+func (ec *executionContext) marshalORelease2ᚕᚖmainᚋgraphᚋmodelᚐReleaseᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Release) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNRelease2ᚖmainᚋgraphᚋmodelᚐRelease(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) marshalORelease2ᚖmainᚋgraphᚋmodelᚐRelease(ctx context.Context, sel ast.SelectionSet, v *model.Release) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._Release(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOSpotifyRelease2ᚖmainᚋgraphᚋmodelᚐSpotifyRelease(ctx context.Context, sel ast.SelectionSet, v *model.SpotifyRelease) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._SpotifyRelease(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {

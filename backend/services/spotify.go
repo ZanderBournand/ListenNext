@@ -616,12 +616,14 @@ func SpotifySearchArtists(query string) ([]*model.Artist, error) {
 		var spotifyArtist model.Artist
 
 		spotifyArtist.Name = artist.(map[string]interface{})["name"].(string)
-		spotifyArtist.SpotifyID = artist.(map[string]interface{})["id"].(string)
+
+		spotifyId := artist.(map[string]interface{})["id"].(string)
+		spotifyArtist.SpotifyID = &spotifyId
 
 		images := artist.(map[string]interface{})["images"].([]interface{})
 		if len(images) > 0 {
 			url := images[0].(map[string]interface{})["url"].(string)
-			spotifyArtist.Image = url
+			spotifyArtist.Image = &url
 		}
 
 		spotifyArtists = append(spotifyArtists, &spotifyArtist)
@@ -654,26 +656,28 @@ func SpotifyArtist(spotifyId string) (*model.Artist, error) {
 	}
 
 	var artist model.Artist
-	artist.SpotifyID = spotifyId
+
+	artist.SpotifyID = &spotifyId
+
 	artist.Name = data["name"].(string)
 
 	images := data["images"].([]interface{})
 	if len(images) > 0 {
 		imageURL := images[0].(map[string]interface{})["url"].(string)
-		artist.Image = imageURL
+		artist.Image = &imageURL
 	}
 
 	genres := data["genres"].([]interface{})
 	for _, genre := range genres {
 		genreStr := genre.(string)
-		artist.Genres = append(artist.Genres, &genreStr)
+		artist.Genres = append(artist.Genres, genreStr)
 	}
 
 	return &artist, nil
 }
 
 func SpotifyArtistTopTracks(artist *model.Artist) error {
-	endpoint := fmt.Sprintf("https://api.spotify.com/v1/artists/%s/top-tracks?country=US", artist.SpotifyID)
+	endpoint := fmt.Sprintf("https://api.spotify.com/v1/artists/%s/top-tracks?country=US", *artist.SpotifyID)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
@@ -712,7 +716,7 @@ func SpotifyArtistTopTracks(artist *model.Artist) error {
 		return err
 	}
 
-	var topTracks []*model.SpotifyRelease
+	var topTracks []*model.Release
 
 	for _, track := range data.Tracks {
 		releaseDate, err := time.Parse("2006-01-02", track.Album.ReleaseDate)
@@ -720,19 +724,20 @@ func SpotifyArtistTopTracks(artist *model.Artist) error {
 			return err
 		}
 
-		spotifyRelease := &model.SpotifyRelease{
-			Title:            track.Name,
-			SpotifyReleaseID: track.ID,
-			ReleaseDate:      releaseDate,
-			Type:             track.Type,
-			Cover:            track.Album.Images[0].URL,
-			Artists:          make([]*model.Artist, len(track.Artists)),
+		spotifyRelease := &model.Release{
+			Title:       track.Name,
+			SpotifyID:   &track.ID,
+			ReleaseDate: releaseDate,
+			Type:        track.Type,
+			Cover:       &track.Album.Images[0].URL,
+			Artists:     make([]*model.Artist, len(track.Artists)),
 		}
 
 		for i, artist := range track.Artists {
+			spotifyId := artist.SpotifyId
 			spotifyRelease.Artists[i] = &model.Artist{
 				Name:      artist.Name,
-				SpotifyID: artist.SpotifyId,
+				SpotifyID: &spotifyId,
 			}
 		}
 
@@ -745,7 +750,7 @@ func SpotifyArtistTopTracks(artist *model.Artist) error {
 }
 
 func SpotifyArtistSingles(artist *model.Artist) error {
-	endpoint := fmt.Sprintf("https://api.spotify.com/v1/artists/%s/albums?album_type=single&limit=10", artist.SpotifyID)
+	endpoint := fmt.Sprintf("https://api.spotify.com/v1/artists/%s/albums?album_type=single&limit=10", *artist.SpotifyID)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
@@ -767,22 +772,27 @@ func SpotifyArtistSingles(artist *model.Artist) error {
 		return err
 	}
 
-	var singles []*model.SpotifyRelease
+	var singles []*model.Release
 
 	items := data["items"].([]interface{})
 	for _, album := range items {
 		albumData := album.(map[string]interface{})
-		var spotifyRelease model.SpotifyRelease
+		var spotifyRelease model.Release
 
 		spotifyRelease.Title = albumData["name"].(string)
-		spotifyRelease.SpotifyReleaseID = albumData["id"].(string)
-		spotifyRelease.Cover = albumData["images"].([]interface{})[0].(map[string]interface{})["url"].(string)
+
+		spotifyID := albumData["id"].(string)
+		spotifyRelease.SpotifyID = &spotifyID
+
+		cover := albumData["images"].([]interface{})[0].(map[string]interface{})["url"].(string)
+		spotifyRelease.Cover = &cover
 
 		artistsData := albumData["artists"].([]interface{})
 		artists := make([]*model.Artist, len(artistsData))
 		for i, artistData := range artistsData {
+			spotifyID := artistData.(map[string]interface{})["id"].(string)
 			artist := &model.Artist{
-				SpotifyID: artistData.(map[string]interface{})["id"].(string),
+				SpotifyID: &spotifyID,
 				Name:      artistData.(map[string]interface{})["name"].(string),
 			}
 			artists[i] = artist
@@ -806,7 +816,7 @@ func SpotifyArtistSingles(artist *model.Artist) error {
 }
 
 func SpotifyArtistAlbums(artist *model.Artist) error {
-	endpoint := fmt.Sprintf("https://api.spotify.com/v1/artists/%s/albums?album_type=album&limit=10", artist.SpotifyID)
+	endpoint := fmt.Sprintf("https://api.spotify.com/v1/artists/%s/albums?album_type=album&limit=10", *artist.SpotifyID)
 
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
@@ -828,22 +838,27 @@ func SpotifyArtistAlbums(artist *model.Artist) error {
 		return err
 	}
 
-	var albums []*model.SpotifyRelease
+	var albums []*model.Release
 
 	items := data["items"].([]interface{})
 	for _, album := range items {
 		albumData := album.(map[string]interface{})
-		var spotifyRelease model.SpotifyRelease
+		var spotifyRelease model.Release
 
 		spotifyRelease.Title = albumData["name"].(string)
-		spotifyRelease.SpotifyReleaseID = albumData["id"].(string)
-		spotifyRelease.Cover = albumData["images"].([]interface{})[0].(map[string]interface{})["url"].(string)
+
+		spotifyID := albumData["id"].(string)
+		spotifyRelease.SpotifyID = &spotifyID
+
+		cover := albumData["images"].([]interface{})[0].(map[string]interface{})["url"].(string)
+		spotifyRelease.Cover = &cover
 
 		artistsData := albumData["artists"].([]interface{})
 		artists := make([]*model.Artist, len(artistsData))
 		for i, artistData := range artistsData {
+			spotifyID := artistData.(map[string]interface{})["id"].(string)
 			artist := &model.Artist{
-				SpotifyID: artistData.(map[string]interface{})["id"].(string),
+				SpotifyID: &spotifyID,
 				Name:      artistData.(map[string]interface{})["name"].(string),
 			}
 			artists[i] = artist

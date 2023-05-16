@@ -7,17 +7,17 @@ import (
 )
 
 type Artist struct {
-	SpotifyID             string            `json:"spotify_id"`
-	Name                  string            `json:"name"`
-	Image                 string            `json:"image"`
-	Genres                []*string         `json:"genres"`
-	RecentReleasesCount   int               `json:"recent_releases_count"`
-	UpcomingReleasesCount int               `json:"upcoming_releases_count"`
-	RecentReleases        []*Release        `json:"recent_releases"`
-	UpcomingReleases      []*Release        `json:"upcoming_releases"`
-	TopTracks             []*SpotifyRelease `json:"top_tracks"`
-	Singles               []*SpotifyRelease `json:"singles"`
-	Albums                []*SpotifyRelease `json:"albums"`
+	SpotifyID             *string    `json:"spotify_id,omitempty"`
+	Name                  string     `json:"name"`
+	Image                 *string    `json:"image,omitempty"`
+	Genres                []string   `json:"genres,omitempty"`
+	RecentReleasesCount   *int       `json:"recent_releases_count,omitempty"`
+	UpcomingReleasesCount *int       `json:"upcoming_releases_count,omitempty"`
+	RecentReleases        []*Release `json:"recent_releases,omitempty"`
+	UpcomingReleases      []*Release `json:"upcoming_releases,omitempty"`
+	TopTracks             []*Release `json:"top_tracks,omitempty"`
+	Singles               []*Release `json:"singles,omitempty"`
+	Albums                []*Release `json:"albums,omitempty"`
 }
 
 type AuthOps struct {
@@ -37,7 +37,7 @@ type RecommendationsInput struct {
 }
 
 type Release struct {
-	ID            int       `json:"_id"`
+	ID            *int      `json:"_id,omitempty"`
 	Title         string    `json:"title"`
 	Artists       []*Artist `json:"artists"`
 	Featurings    []*Artist `json:"featurings,omitempty"`
@@ -48,8 +48,9 @@ type Release struct {
 	Tracklist     []string  `json:"tracklist,omitempty"`
 	Type          string    `json:"type"`
 	AotyID        *string   `json:"aoty_id,omitempty"`
+	SpotifyID     *string   `json:"spotify_id,omitempty"`
 	TrendingScore *float64  `json:"trending_score,omitempty"`
-	ArtistRole    string    `json:"artist_role"`
+	ArtistRole    *string   `json:"artist_role,omitempty"`
 }
 
 type ReleasesInput struct {
@@ -63,13 +64,4 @@ type ReleasesList struct {
 	Releases []*Release `json:"releases"`
 	Prev     bool       `json:"prev"`
 	Next     bool       `json:"next"`
-}
-
-type SpotifyRelease struct {
-	SpotifyReleaseID string    `json:"spotify_release_id"`
-	Title            string    `json:"title"`
-	Cover            string    `json:"cover"`
-	Artists          []*Artist `json:"artists"`
-	ReleaseDate      time.Time `json:"release_date"`
-	Type             string    `json:"type"`
 }

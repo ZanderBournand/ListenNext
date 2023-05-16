@@ -13,6 +13,7 @@ require (
 	github.com/vektah/gqlparser/v2 v2.5.1
 	golang.org/x/crypto v0.9.0
 	golang.org/x/oauth2 v0.7.0
+	gopkg.in/guregu/null.v4 v4.0.0
 )
 
 require (
