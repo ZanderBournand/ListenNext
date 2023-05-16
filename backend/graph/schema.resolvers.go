@@ -46,11 +46,6 @@ func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error
 	return db.UserGetByID(ctx, id)
 }
 
-// Protected is the resolver for the protected field.
-func (r *queryResolver) Protected(ctx context.Context) (string, error) {
-	return "Success", nil
-}
-
 // Recommendations is the resolver for the recommendations field.
 func (r *queryResolver) Recommendations(ctx context.Context, input model.RecommendationsInput) ([]*model.Release, error) {
 	return services.GetRecommendations(ctx, input), nil

@@ -39,9 +39,9 @@ type RecommendationsInput struct {
 type Release struct {
 	ID            int       `json:"_id"`
 	Title         string    `json:"title"`
-	Artists       []string  `json:"artists"`
-	Featurings    []string  `json:"featurings,omitempty"`
-	Date          time.Time `json:"date"`
+	Artists       []*Artist `json:"artists"`
+	Featurings    []*Artist `json:"featurings,omitempty"`
+	ReleaseDate   time.Time `json:"release_date"`
 	Cover         *string   `json:"cover,omitempty"`
 	Genres        []string  `json:"genres,omitempty"`
 	Producers     []string  `json:"producers,omitempty"`
@@ -70,6 +70,6 @@ type SpotifyRelease struct {
 	Title            string    `json:"title"`
 	Cover            string    `json:"cover"`
 	Artists          []*Artist `json:"artists"`
-	Date             time.Time `json:"date"`
+	ReleaseDate      time.Time `json:"release_date"`
 	Type             string    `json:"type"`
 }

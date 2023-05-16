@@ -62,7 +62,7 @@ func GetMatchingReleases(ids []int, genres []string, period string) ([]*model.Re
 	}
 
 	query := fmt.Sprintf(`
-		SELECT r.id, array_agg(DISTINCT a.name) AS artists, array_agg(DISTINCT COALESCE(ap.name, '')) AS featurings, r.title, r.date, r.cover, array_agg(DISTINCT COALESCE(g.type, '')) AS genres, array_agg(DISTINCT COALESCE(p.name, '')) AS producers, r.tracklist, r.type, r.aoty_id, r.trending_score
+		SELECT r.id, array_agg(DISTINCT COALESCE(a.name, '')) AS artists, array_agg(DISTINCT COALESCE(ap.name, '')) AS featurings, array_agg(DISTINCT COALESCE(a.spotify_id, '')) AS artists_spotify_ids, array_agg(DISTINCT COALESCE(ap.spotify_id, '')) AS featurings_spotify_ids, r.title, r.date, r.cover, array_agg(DISTINCT COALESCE(g.type, '')) AS genres, array_agg(DISTINCT COALESCE(p.name, '')) AS producers, r.tracklist, r.type, r.aoty_id, r.trending_score
 		FROM Releases r
 		LEFT JOIN Releases_Artists ra ON r.id = ra.release_id AND ra.relationship = 'main'
 		LEFT JOIN Artists a ON ra.artist_id = a.id
@@ -88,14 +88,35 @@ func GetMatchingReleases(ids []int, genres []string, period string) ([]*model.Re
 
 	for rows.Next() {
 		var release model.Release
-		var artists, featurings, genres, producers []string
+		var artists, featurings, genres, producers, artistsSpotifyIDs, featuringsSpotifyIDs []string
 
-		if err := rows.Scan(&release.ID, pq.Array(&artists), pq.Array(&featurings), &release.Title, &release.Date, &release.Cover, pq.Array(&genres), pq.Array(&producers), pq.Array(&release.Tracklist), &release.Type, &release.AotyID, &release.TrendingScore); err != nil {
+		if err := rows.Scan(&release.ID, pq.Array(&artists), pq.Array(&featurings), pq.Array(&artistsSpotifyIDs), pq.Array(&featuringsSpotifyIDs), &release.Title, &release.ReleaseDate, &release.Cover, pq.Array(&genres), pq.Array(&producers), pq.Array(&release.Tracklist), &release.Type, &release.AotyID, &release.TrendingScore); err != nil {
 			return nil, err
 		}
 
-		release.Artists = artists
-		release.Featurings = featurings
+		var releaseArtists []*model.Artist
+		var releaseFeaturings []*model.Artist
+
+		for i, artist := range artists {
+			var releaseArtist model.Artist
+
+			releaseArtist.Name = artist
+			releaseArtist.SpotifyID = artistsSpotifyIDs[i]
+
+			releaseArtists = append(releaseArtists, &releaseArtist)
+		}
+
+		for i, featuring := range featurings {
+			var releaseFeaturing model.Artist
+
+			releaseFeaturing.Name = featuring
+			releaseFeaturing.SpotifyID = featuringsSpotifyIDs[i]
+
+			releaseFeaturings = append(releaseFeaturings, &releaseFeaturing)
+		}
+
+		release.Artists = releaseArtists
+		release.Featurings = releaseFeaturings
 		release.Genres = genres
 		release.Producers = producers
 
@@ -160,7 +181,7 @@ func GetTrendingReleases(releaseType string, direction string, reference int, pe
 
 	count := releasesCount(releaseType, startDate, endDate)
 
-	query := `SELECT r.id, array_agg(DISTINCT a.name) AS artists, array_agg(DISTINCT COALESCE(ap.name, '')) AS featurings, r.title, r.date, r.cover, array_agg(DISTINCT COALESCE(g.type, '')) AS genres, array_agg(DISTINCT COALESCE(p.name, '')) AS producers, r.tracklist, r.type, r.aoty_id, r.trending_score
+	query := `SELECT r.id, array_agg(DISTINCT COALESCE(a.name, '')) AS artists, array_agg(DISTINCT COALESCE(ap.name, '')) AS featurings, array_agg(DISTINCT COALESCE(a.spotify_id, '')) AS artists_spotify_ids, array_agg(DISTINCT COALESCE(ap.spotify_id, '')) AS featurings_spotify_ids, r.title, r.date, r.cover, array_agg(DISTINCT COALESCE(g.type, '')) AS genres, array_agg(DISTINCT COALESCE(p.name, '')) AS producers, r.tracklist, r.type, r.aoty_id, r.trending_score
               FROM Releases r
               LEFT JOIN Releases_Artists ra ON r.id = ra.release_id AND ra.relationship = 'main'
               LEFT JOIN Artists a ON ra.artist_id = a.id
@@ -197,15 +218,36 @@ func GetTrendingReleases(releaseType string, direction string, reference int, pe
 		batchSize += 1
 
 		var release model.Release
-		var artists, featurings, genres, producers []string
+		var artists, featurings, genres, producers, artistsSpotifyIDs, featuringsSpotifyIDs []string
 
-		err := rows.Scan(&release.ID, pq.Array(&artists), pq.Array(&featurings), &release.Title, &release.Date, &release.Cover, pq.Array(&genres), pq.Array(&producers), pq.Array(&release.Tracklist), &release.Type, &release.AotyID, &release.TrendingScore)
+		err := rows.Scan(&release.ID, pq.Array(&artists), pq.Array(&featurings), pq.Array(&artistsSpotifyIDs), pq.Array(&featuringsSpotifyIDs), &release.Title, &release.ReleaseDate, &release.Cover, pq.Array(&genres), pq.Array(&producers), pq.Array(&release.Tracklist), &release.Type, &release.AotyID, &release.TrendingScore)
 		if err != nil {
 			panic(err)
 		}
 
-		release.Artists = artists
-		release.Featurings = featurings
+		var releaseArtists []*model.Artist
+		var releaseFeaturings []*model.Artist
+
+		for i, artist := range artists {
+			var releaseArtist model.Artist
+
+			releaseArtist.Name = artist
+			releaseArtist.SpotifyID = artistsSpotifyIDs[i]
+
+			releaseArtists = append(releaseArtists, &releaseArtist)
+		}
+
+		for i, featuring := range featurings {
+			var releaseFeaturing model.Artist
+
+			releaseFeaturing.Name = featuring
+			releaseFeaturing.SpotifyID = featuringsSpotifyIDs[i]
+
+			releaseFeaturings = append(releaseFeaturings, &releaseFeaturing)
+		}
+
+		release.Artists = releaseArtists
+		release.Featurings = releaseFeaturings
 		release.Genres = genres
 		release.Producers = producers
 
@@ -239,7 +281,7 @@ func GetTrendingReleases(releaseType string, direction string, reference int, pe
 }
 
 func GetRelease(id int) *model.Release {
-	query := `SELECT r.id, array_agg(DISTINCT a.name) AS artists, array_agg(DISTINCT COALESCE(ap.name, '')) AS featurings, r.title, r.date, r.cover, array_agg(DISTINCT COALESCE(g.type, '')) AS genres, array_agg(DISTINCT COALESCE(p.name, '')) AS producers, r.tracklist, r.type, r.aoty_id, r.trending_score
+	query := `SELECT r.id, array_agg(DISTINCT COALESCE(a.name, '')) AS artists, array_agg(DISTINCT COALESCE(ap.name, '')) AS featurings, array_agg(DISTINCT COALESCE(a.spotify_id, '')) AS artists_spotify_ids, array_agg(DISTINCT COALESCE(ap.spotify_id, '')) AS featurings_spotify_ids, r.title, r.date, r.cover, array_agg(DISTINCT COALESCE(g.type, '')) AS genres, array_agg(DISTINCT COALESCE(p.name, '')) AS producers, r.tracklist, r.type, r.aoty_id, r.trending_score
               FROM Releases r
               LEFT JOIN Releases_Artists ra ON r.id = ra.release_id AND ra.relationship = 'main'
               LEFT JOIN Artists a ON ra.artist_id = a.id
@@ -249,7 +291,7 @@ func GetRelease(id int) *model.Release {
               LEFT JOIN Producers p ON rp.producer_id = p.id
               LEFT JOIN Releases_Genres rg ON r.id = rg.release_id
               LEFT JOIN Genres g ON rg.genre_id = g.id
-			  WHERE r.trending_score IS NOT NULL`
+              WHERE r.trending_score IS NOT NULL`
 
 	query += fmt.Sprintf(" AND r.id = %d", id)
 	query += " GROUP BY r.id"
@@ -257,15 +299,36 @@ func GetRelease(id int) *model.Release {
 	row := db.QueryRow(query)
 
 	var release model.Release
-	var artists, featurings, genres, producers []string
+	var artists, featurings, genres, producers, artistsSpotifyIDs, featuringsSpotifyIDs []string
 
-	err := row.Scan(&release.ID, pq.Array(&artists), pq.Array(&featurings), &release.Title, &release.Date, &release.Cover, pq.Array(&genres), pq.Array(&producers), pq.Array(&release.Tracklist), &release.Type, &release.AotyID, &release.TrendingScore)
+	err := row.Scan(&release.ID, pq.Array(&artists), pq.Array(&featurings), pq.Array(&artistsSpotifyIDs), pq.Array(&featuringsSpotifyIDs), &release.Title, &release.ReleaseDate, &release.Cover, pq.Array(&genres), pq.Array(&producers), pq.Array(&release.Tracklist), &release.Type, &release.AotyID, &release.TrendingScore)
 	if err != nil {
 		panic(err)
 	}
 
-	release.Artists = artists
-	release.Featurings = featurings
+	var releaseArtists []*model.Artist
+	var releaseFeaturings []*model.Artist
+
+	for i, artist := range artists {
+		var releaseArtist model.Artist
+
+		releaseArtist.Name = artist
+		releaseArtist.SpotifyID = artistsSpotifyIDs[i]
+
+		releaseArtists = append(releaseArtists, &releaseArtist)
+	}
+
+	for i, featuring := range featurings {
+		var releaseFeaturing model.Artist
+
+		releaseFeaturing.Name = featuring
+		releaseFeaturing.SpotifyID = featuringsSpotifyIDs[i]
+
+		releaseFeaturings = append(releaseFeaturings, &releaseFeaturing)
+	}
+
+	release.Artists = releaseArtists
+	release.Featurings = releaseFeaturings
 	release.Genres = genres
 	release.Producers = producers
 

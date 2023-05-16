@@ -19,6 +19,7 @@ func GetArtist(spotifyID string) *model.Artist {
 
 		err := db.FindArtistRecentReleases(artist)
 		if err != nil {
+			fmt.Println(err)
 			fmt.Println("Error fetching artist recent releases")
 		}
 	}(artist)
@@ -28,6 +29,7 @@ func GetArtist(spotifyID string) *model.Artist {
 
 		err := db.FindArtistUpcomingReleases(artist)
 		if err != nil {
+			fmt.Println(err)
 			fmt.Println("Error fetching artist upcoming releases")
 		}
 	}(artist)

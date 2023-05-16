@@ -723,7 +723,7 @@ func SpotifyArtistTopTracks(artist *model.Artist) error {
 		spotifyRelease := &model.SpotifyRelease{
 			Title:            track.Name,
 			SpotifyReleaseID: track.ID,
-			Date:             releaseDate,
+			ReleaseDate:      releaseDate,
 			Type:             track.Type,
 			Cover:            track.Album.Images[0].URL,
 			Artists:          make([]*model.Artist, len(track.Artists)),
@@ -793,7 +793,7 @@ func SpotifyArtistSingles(artist *model.Artist) error {
 		if err != nil {
 			return err
 		}
-		spotifyRelease.Date = releaseDate
+		spotifyRelease.ReleaseDate = releaseDate
 
 		spotifyRelease.Type = albumData["album_type"].(string)
 
@@ -854,7 +854,7 @@ func SpotifyArtistAlbums(artist *model.Artist) error {
 		if err != nil {
 			return err
 		}
-		spotifyRelease.Date = releaseDate
+		spotifyRelease.ReleaseDate = releaseDate
 
 		spotifyRelease.Type = albumData["album_type"].(string)
 

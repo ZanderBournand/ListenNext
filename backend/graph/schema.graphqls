@@ -17,9 +17,9 @@ scalar Time
 type Release {
   _id: Int!
   title: String!
-  artists: [String!]!
-  featurings: [String!]
-  date: Time!
+  artists: [Artist!]!
+  featurings: [Artist]
+  release_date: Time!
   cover: String
   genres: [String!]
   producers: [String!]
@@ -61,7 +61,7 @@ type SpotifyRelease {
   title: String!
   cover: String!
   artists: [Artist!]!
-  date: Time!
+  release_date: Time!
   type: String!
 }
 
@@ -76,7 +76,6 @@ type Query {
     @goField(forceResolver: true)
   release(id: Int!): Release! @goField(forceResolver: true)
   user(id: ID!): User! @goField(forceResolver: true)
-  protected: String! @goField(forceResolver: true) @auth
   recommendations(input: RecommendationsInput!): [Release]!
     @goField(forceResolver: true)
     @spotify
