@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"main/config"
+	"main/db"
 	"main/graph/model"
 	"main/types"
 	"math/rand"
@@ -95,130 +96,131 @@ func SpotifyGeneralToken() {
 }
 
 func SpotifyUserTops(accessToken string) ([]types.SpotifyArtist, []types.SpotifyTrack, error) {
-	limitQuery := "10"
-
 	var spotifyArtists []types.SpotifyArtist
 	var spotifyTracks []types.SpotifyTrack
 
-	endpoint := fmt.Sprintf("https://api.spotify.com/v1/me/top/artists?limit=%s&time_range=short_term", limitQuery)
+	var wg sync.WaitGroup
+	wg.Add(2)
+
+	go func() {
+		defer wg.Done()
+		err := SpotifyUserTopArtists(accessToken, &spotifyArtists)
+		if err != nil {
+			log.Println("Error in SpotifyUserTopArtists:", err)
+		}
+	}()
+
+	go func() {
+		defer wg.Done()
+		err := SpotifyUserTopTracks(accessToken, &spotifyArtists, &spotifyTracks)
+		if err != nil {
+			log.Println("Error in SpotifyUserTopTracks:", err)
+		}
+	}()
+
+	wg.Wait()
+
+	return spotifyArtists, spotifyTracks, nil
+}
+
+func SpotifyUserTopArtists(accessToken string, spotifyArtists *[]types.SpotifyArtist) error {
+	limitQuery := "10"
+
+	endpoint := fmt.Sprintf("https://api.spotify.com/v1/me/top/artists?limit=%s&time_range=medium_term", limitQuery)
 
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error making user tops request: %v", err)
+		return fmt.Errorf("error making user tops request: %v", err)
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 
 	res, err := client.Do(req)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error making user tops request: %v", err)
+		return fmt.Errorf("error making user tops request: %v", err)
+	}
+	defer res.Body.Close()
+
+	var artistsData struct {
+		Artists []types.SpotifyArtist `json:"items"`
+	}
+
+	err = json.NewDecoder(res.Body).Decode(&artistsData)
+	if err != nil {
+		return fmt.Errorf("error decoding artists response: %v", err)
+	}
+
+	*spotifyArtists = append(*spotifyArtists, artistsData.Artists...)
+
+	return nil
+}
+
+func SpotifyUserTopTracks(accessToken string, spotifyArtists *[]types.SpotifyArtist, spotifyTracks *[]types.SpotifyTrack) error {
+	limitQuery := "10"
+
+	endpoint := fmt.Sprintf("https://api.spotify.com/v1/me/top/tracks?limit=%s&time_range=medium_term", limitQuery)
+
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return fmt.Errorf("error making user tops request: %v", err)
+	}
+	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
+
+	res, err := client.Do(req)
+	if err != nil {
+		return fmt.Errorf("error making user tops request: %v", err)
 	}
 	defer res.Body.Close()
 
 	var data map[string]interface{}
 	err = json.NewDecoder(res.Body).Decode(&data)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error decoding response: %v", err)
+		return fmt.Errorf("error decoding response: %v", err)
 	}
 
-	artists := data["items"].([]interface{})
+	items := data["items"].([]interface{})
 
-	for _, artist := range artists {
-		var spotifyArtist types.SpotifyArtist
+	var artistIDs []string
 
-		spotifyArtist.Name = artist.(map[string]interface{})["name"].(string)
-		spotifyArtist.ID = artist.(map[string]interface{})["id"].(string)
-		genres := make([]string, 0)
-		for _, genre := range artist.(map[string]interface{})["genres"].([]interface{}) {
-			genres = append(genres, genre.(string))
+	for _, item := range items {
+		var spotifyTrack types.SpotifyTrack
+		spotifyTrack.ID = item.(map[string]interface{})["id"].(string)
+		*spotifyTracks = append(*spotifyTracks, spotifyTrack)
+
+		artists := item.(map[string]interface{})["artists"].([]interface{})
+		for _, artist := range artists {
+			artistID := artist.(map[string]interface{})["id"].(string)
+			artistIDs = append(artistIDs, artistID)
 		}
-		spotifyArtist.Genres = genres
-
-		spotifyArtists = append(spotifyArtists, spotifyArtist)
 	}
 
-	endpoint = fmt.Sprintf("https://api.spotify.com/v1/me/top/tracks?limit=%s&time_range=short_term", limitQuery)
+	artistsEndpoint := fmt.Sprintf("https://api.spotify.com/v1/artists?ids=%s", strings.Join(artistIDs, ","))
 
-	req, err = http.NewRequest("GET", endpoint, nil)
+	req, err = http.NewRequest("GET", artistsEndpoint, nil)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error making user tops request: %v", err)
+		return fmt.Errorf("error making artists request: %v", err)
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 
 	res, err = client.Do(req)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error making user tops request: %v", err)
+		return fmt.Errorf("error making artists request: %v", err)
 	}
 	defer res.Body.Close()
 
-	err = json.NewDecoder(res.Body).Decode(&data)
+	var artistsData struct {
+		Artists []types.SpotifyArtist `json:"artists"`
+	}
+
+	err = json.NewDecoder(res.Body).Decode(&artistsData)
 	if err != nil {
-		return nil, nil, fmt.Errorf("error decoding response: %v", err)
+		return fmt.Errorf("error decoding artists response: %v", err)
 	}
 
-	items := data["items"].([]interface{})
+	*spotifyArtists = append(*spotifyArtists, artistsData.Artists...)
 
-	var wg sync.WaitGroup
-
-	for _, item := range items {
-		wg.Add(1)
-		go func(item interface{}) {
-			defer wg.Done()
-
-			var spotifyTrack types.SpotifyTrack
-			spotifyTrack.ID = item.(map[string]interface{})["id"].(string)
-
-			artists := item.(map[string]interface{})["artists"].([]interface{})
-
-			for _, artist := range artists {
-
-				var spotifyArtist types.SpotifyArtist
-
-				spotifyArtist.Name = artist.(map[string]interface{})["name"].(string)
-				spotifyArtist.ID = artist.(map[string]interface{})["id"].(string)
-
-				endpoint := fmt.Sprintf("https://api.spotify.com/v1/artists/%s", spotifyArtist.ID)
-
-				rand.Seed(time.Now().UnixNano())
-				tokenIndex := rand.Intn(len(scrapingTokens))
-
-				req, err := http.NewRequest("GET", endpoint, nil)
-				if err != nil {
-					log.Printf("error making artist request: %v", err)
-					return
-				}
-				req.Header.Set("Authorization", "Bearer "+scrapingTokens[tokenIndex])
-
-				client := &http.Client{}
-				res, err := client.Do(req)
-				if err != nil || res.StatusCode != 200 {
-					log.Printf("error making artist request: %v", err)
-					return
-				}
-				defer res.Body.Close()
-
-				var artistData map[string]interface{}
-				err = json.NewDecoder(res.Body).Decode(&artistData)
-				if err != nil {
-					log.Printf("error decoding artist response: %v", err)
-					return
-				}
-
-				genres := artistData["genres"].([]interface{})
-				for _, genre := range genres {
-					spotifyArtist.Genres = append(spotifyArtist.Genres, genre.(string))
-				}
-
-				spotifyArtists = append(spotifyArtists, spotifyArtist)
-			}
-
-			spotifyTracks = append(spotifyTracks, spotifyTrack)
-		}(item)
-	}
-
-	wg.Wait()
-
-	return spotifyArtists, spotifyTracks, nil
+	return nil
 }
 
 func SpotifyRelatedArtists(artists []types.SpotifyArtist) ([]types.SpotifyArtist, error) {
@@ -318,19 +320,7 @@ func SpotifyRecommendations(artists []types.SpotifyArtist, tracks []types.Spotif
 				log.Printf("error getting recommendations: %v", err)
 				return
 			}
-
-			for _, artist := range recommendations {
-				found := false
-				for _, existingArtist := range artists {
-					if existingArtist.ID == artist.ID {
-						found = true
-						break
-					}
-				}
-				if !found {
-					artists = append(artists, artist)
-				}
-			}
+			artists = append(artists, recommendations...)
 		}()
 	}
 
@@ -391,53 +381,31 @@ func Recommendations(artistIds []string, genres []string, trackIds []string) ([]
 		}
 	}
 
-	var releaseArtists []types.SpotifyArtist
-	var wg sync.WaitGroup
+	endpoint = fmt.Sprintf("https://api.spotify.com/v1/artists?ids=%s", strings.Join(artistIDs, ","))
 
-	for _, artistID := range artistIDs {
-		wg.Add(1)
-		go func(artistID string) {
-			defer wg.Done()
+	req, err = http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Authorization", "Bearer "+scrapingTokens[tokenIndex])
 
-			var spotifyArtist types.SpotifyArtist
-			spotifyArtist.ID = artistID
+	res, err = client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer res.Body.Close()
 
-			endpoint := fmt.Sprintf("https://api.spotify.com/v1/artists/%s", spotifyArtist.ID)
-
-			rand.Seed(time.Now().UnixNano())
-			tokenIndex := rand.Intn(len(scrapingTokens))
-
-			req, err := http.NewRequest("GET", endpoint, nil)
-			if err != nil {
-				panic(err)
-			}
-			req.Header.Set("Authorization", "Bearer "+scrapingTokens[tokenIndex])
-
-			client := &http.Client{}
-			res, err := client.Do(req)
-			if err != nil {
-				panic(err)
-			}
-			defer res.Body.Close()
-
-			var artistData map[string]interface{}
-			err = json.NewDecoder(res.Body).Decode(&artistData)
-			if err != nil {
-				panic(err)
-			}
-
-			spotifyArtist.Name = artistData["name"].(string)
-
-			genres := artistData["genres"].([]interface{})
-			for _, genre := range genres {
-				spotifyArtist.Genres = append(spotifyArtist.Genres, genre.(string))
-			}
-
-			releaseArtists = append(releaseArtists, spotifyArtist)
-		}(artistID)
+	var artistsData struct {
+		Artists []types.SpotifyArtist `json:"artists"`
 	}
 
-	wg.Wait()
+	err = json.NewDecoder(res.Body).Decode(&artistsData)
+	if err != nil {
+		return nil, err
+	}
+
+	var releaseArtists []types.SpotifyArtist
+	releaseArtists = append(releaseArtists, artistsData.Artists...)
 
 	return releaseArtists, nil
 }
@@ -547,6 +515,34 @@ func SpotifyUserInfo(accessToken string) (string, string, error) {
 	}
 
 	return response.Email, response.DisplayName, nil
+}
+
+func SpotifyUserToken(userID string) string {
+	accessToken, refreshToken, tokenExpiration := db.GetSpotifyUserTokens(userID)
+
+	utcNow := time.Now().UTC()
+	utcExpirationTime := tokenExpiration.UTC()
+
+	if utcNow.After(utcExpirationTime) {
+		newAccessToken, ExpirationIn, err := SpotifyRefreshToken(refreshToken)
+		if err != nil {
+			fmt.Println(err)
+			return ""
+		}
+
+		location, err := time.LoadLocation("UTC")
+		if err != nil {
+			fmt.Println(err)
+			return ""
+		}
+
+		expirationTime := time.Now().Add(time.Second * time.Duration(ExpirationIn)).In(location)
+		db.UpdateSpotifyUserTokens(userID, newAccessToken, refreshToken, expirationTime)
+
+		accessToken = newAccessToken
+	}
+
+	return accessToken
 }
 
 func SpotifyRefreshToken(refreshToken string) (string, int, error) {
