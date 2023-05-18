@@ -3,7 +3,6 @@ package services
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"main/config"
 	"main/db"
 	"main/graph/model"
@@ -89,8 +88,6 @@ func SpotifyUserLogin(ctx context.Context, code string) (interface{}, error) {
 			Message: "Spotify user fetch error",
 		}
 	}
-
-	fmt.Println("EXPIRATION:", token.Expiry)
 
 	user, err := db.UserGetByEmail(ctx, email)
 	if err == nil {

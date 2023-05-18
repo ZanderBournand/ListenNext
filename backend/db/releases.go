@@ -77,7 +77,7 @@ func GetMatchingReleases(ids []int, genres []string, period string) ([]*model.Re
 
 	query += fmt.Sprintf(" AND r.date >= '%s' AND r.date <= '%s'", startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))
 
-	query += ` GROUP BY r.id ORDER BY r.trending_score DESC`
+	query += ` GROUP BY r.id ORDER BY r.trending_score DESC, r.id DESC`
 
 	rows, err := db.Query(query)
 	if err != nil {
@@ -192,7 +192,7 @@ func GetTrendingReleases(releaseType string, direction string, reference int, pe
 	}
 
 	query += fmt.Sprintf(" AND r.date >= '%s' AND r.date <= '%s'", startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))
-	query += " GROUP BY r.id ORDER BY r.trending_score DESC"
+	query += " GROUP BY r.id ORDER BY r.trending_score DESC, r.id DESC"
 	query += fmt.Sprintf(" LIMIT %d OFFSET %d", limit, offset)
 
 	rows, err := db.Query(query)
@@ -333,7 +333,7 @@ func releasesCount(releaseType string, startDate time.Time, endDate time.Time) i
 	}
 
 	query += fmt.Sprintf(" AND r.date >= '%s' AND r.date <= '%s'", startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))
-	query += " GROUP BY r.id ORDER BY r.trending_score DESC) as all_releases"
+	query += " GROUP BY r.id ORDER BY r.trending_score DESC, r.id DESC) as all_releases"
 
 	err := db.QueryRow(query).Scan(&count)
 	if err != nil {
@@ -352,8 +352,7 @@ func AddOrUpdateRelease(releaseType string, release types.Release, updateTime ti
 		if err == nil {
 			return id, nil
 		}
-		fmt.Println("error updating release")
-		return -1, fmt.Errorf("error updating release")
+		return -1, err
 	} else if err == sql.ErrNoRows {
 		var newID int64
 		err = db.QueryRow("INSERT INTO Releases(title, date, cover, tracklist, type, updated, aoty_id) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id",
@@ -361,12 +360,9 @@ func AddOrUpdateRelease(releaseType string, release types.Release, updateTime ti
 		if err == nil {
 			return newID, nil
 		}
-		fmt.Println("error addding release")
-		return -1, fmt.Errorf("error addding release")
+		return -1, err
 	} else {
-		fmt.Println(err)
-		fmt.Println("error querying release")
-		return -1, fmt.Errorf("error querying release")
+		return -1, err
 	}
 
 }

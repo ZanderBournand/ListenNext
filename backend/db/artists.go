@@ -73,7 +73,7 @@ func UploadArtist(artist string, spotifyArtist *types.SpotifyArtist) (int64, int
 				AddOrUpdateArtistGenres(id, spotifyArtist.Genres)
 				return id, spotifyArtist.Popularity, nil
 			}
-			return -1, -1, fmt.Errorf("error updating artist w/ spotify")
+			return -1, -1, err
 		} else if err == sql.ErrNoRows {
 			var newID int64
 			err = db.QueryRow("INSERT INTO Artists(name, spotify_id, popularity, compare_name) VALUES($1, $2, $3, $4) RETURNING id",
@@ -82,9 +82,9 @@ func UploadArtist(artist string, spotifyArtist *types.SpotifyArtist) (int64, int
 				AddOrUpdateArtistGenres(newID, spotifyArtist.Genres)
 				return newID, spotifyArtist.Popularity, nil
 			}
-			return -1, -1, fmt.Errorf("error inserting artist w/ spotify")
+			return -1, -1, err
 		} else {
-			return -1, -1, fmt.Errorf("error querying artist w/ spotify")
+			return -1, -1, err
 		}
 	} else {
 		compareName := strings.ToLower(strings.ReplaceAll(artist, " ", ""))
@@ -100,9 +100,9 @@ func UploadArtist(artist string, spotifyArtist *types.SpotifyArtist) (int64, int
 			if err == nil {
 				return newID, -1, nil
 			}
-			return -1, -1, fmt.Errorf("error inserting artist")
+			return -1, -1, err
 		} else {
-			return -1, -1, fmt.Errorf("error querying artist")
+			return -1, -1, err
 		}
 	}
 }
@@ -121,7 +121,6 @@ func AddOrUpdateArtistGenres(artistId int64, genres []string) {
 		if id != 0 {
 			_, err := db.Exec("INSERT INTO artists_genres (artist_id, genre_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", artistId, id)
 			if err != nil {
-				fmt.Println(artistId)
 				fmt.Println("Error inserting artist genre join")
 			}
 		}

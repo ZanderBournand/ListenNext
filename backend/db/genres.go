@@ -21,7 +21,6 @@ func AddOrUpdateGenres(releaseId int64, release types.Release) {
 		if id != 0 {
 			_, err := db.Exec("INSERT INTO releases_genres (release_id, genre_id) VALUES ($1, $2) ON CONFLICT DO NOTHING", releaseId, id)
 			if err != nil {
-				fmt.Println(release)
 				fmt.Println("Error inserting release genre join")
 			}
 		}

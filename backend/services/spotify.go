@@ -131,13 +131,13 @@ func SpotifyUserTopArtists(accessToken string, spotifyArtists *[]types.SpotifyAr
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
-		return fmt.Errorf("error making user tops request: %v", err)
+		return err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 
 	res, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("error making user tops request: %v", err)
+		return err
 	}
 	defer res.Body.Close()
 
@@ -147,7 +147,7 @@ func SpotifyUserTopArtists(accessToken string, spotifyArtists *[]types.SpotifyAr
 
 	err = json.NewDecoder(res.Body).Decode(&artistsData)
 	if err != nil {
-		return fmt.Errorf("error decoding artists response: %v", err)
+		return err
 	}
 
 	*spotifyArtists = append(*spotifyArtists, artistsData.Artists...)
@@ -163,20 +163,20 @@ func SpotifyUserTopTracks(accessToken string, spotifyArtists *[]types.SpotifyArt
 	client := &http.Client{}
 	req, err := http.NewRequest("GET", endpoint, nil)
 	if err != nil {
-		return fmt.Errorf("error making user tops request: %v", err)
+		return err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 
 	res, err := client.Do(req)
 	if err != nil {
-		return fmt.Errorf("error making user tops request: %v", err)
+		return err
 	}
 	defer res.Body.Close()
 
 	var data map[string]interface{}
 	err = json.NewDecoder(res.Body).Decode(&data)
 	if err != nil {
-		return fmt.Errorf("error decoding response: %v", err)
+		return err
 	}
 
 	items := data["items"].([]interface{})
@@ -199,13 +199,13 @@ func SpotifyUserTopTracks(accessToken string, spotifyArtists *[]types.SpotifyArt
 
 	req, err = http.NewRequest("GET", artistsEndpoint, nil)
 	if err != nil {
-		return fmt.Errorf("error making artists request: %v", err)
+		return err
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", accessToken))
 
 	res, err = client.Do(req)
 	if err != nil {
-		return fmt.Errorf("error making artists request: %v", err)
+		return err
 	}
 	defer res.Body.Close()
 
@@ -215,7 +215,7 @@ func SpotifyUserTopTracks(accessToken string, spotifyArtists *[]types.SpotifyArt
 
 	err = json.NewDecoder(res.Body).Decode(&artistsData)
 	if err != nil {
-		return fmt.Errorf("error decoding artists response: %v", err)
+		return err
 	}
 
 	*spotifyArtists = append(*spotifyArtists, artistsData.Artists...)
@@ -395,6 +395,10 @@ func Recommendations(artistIds []string, genres []string, trackIds []string) ([]
 	}
 	defer res.Body.Close()
 
+	if res.StatusCode == 429 {
+		fmt.Println(scrapingTokens[tokenIndex], " / ", tokenIndex)
+	}
+
 	var artistsData struct {
 		Artists []types.SpotifyArtist `json:"artists"`
 	}
@@ -484,7 +488,7 @@ func SpotifySearch(artist string) (*types.SpotifyArtist, error) {
 		}
 	}
 
-	return nil, fmt.Errorf("no matching artist found")
+	return nil, err
 }
 
 func SpotifyUserInfo(accessToken string) (string, string, error) {
