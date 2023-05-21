@@ -7,7 +7,8 @@ import Logo from '../../public/listennext_logo.png'
 export default function NavBar() {
     return (
     <header className="sticky top-0 z-20 bg-white">
-      <Navbar fluid>
+      <div className="max-w-7xl mx-auto px-6">
+        <Navbar fluid>
           <Navbar.Brand href="/">
             <Image
               alt="Flowbite logo"
@@ -30,6 +31,7 @@ export default function NavBar() {
             <Navbar.Link href="/">Recommendations</Navbar.Link>
           </Navbar.Collapse>
         </Navbar>
+      </div>
     </header>
     )
   }

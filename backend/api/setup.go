@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/cors"
 )
 
 const defaultPort = "8000"
@@ -22,6 +23,15 @@ func Setup() {
 	r := chi.NewRouter()
 	r.Use(middleware.Recoverer)
 	r.Use(middlewares.AuthMiddleware)
+
+	corsConfig := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"}, // Replace with your client's origin
+		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		AllowedHeaders:   []string{"*"},
+		AllowCredentials: true,
+		MaxAge:           300, // Maximum value for preflight OPTIONS request cache (in seconds)
+	})
+	r.Use(corsConfig.Handler)
 
 	SetupRoutes(r)
 

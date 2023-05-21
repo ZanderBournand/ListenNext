@@ -1,8 +1,8 @@
 import { gql } from "@apollo/client";
 
-export const query = ({ releaseType, direction, reference, period }: any) => gql`
-  query GetTrendingReleases {
-    trendingReleases(input: { type: "${releaseType}", direction: "${direction}", reference: ${reference}, period: "${period}" }) {
+export const query = gql`
+  query GetTrendingReleases($releaseType: String!, $direction: String!, $reference: Int!, $period: String!) {
+    trendingReleases(input: {type: $releaseType, direction: $direction, reference: $reference, period: $period}) {
       releases {
         _id
         title

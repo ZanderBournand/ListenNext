@@ -8,7 +8,7 @@ export default function ReleasePreview({release}: any) {
         <div className="flex flex-col items-center justify-start">
         <div className="flex flex-col items-center">
             <div className="mb-2">
-                <Image alt="album image" src={release.cover.length === 0 ? DefaultCover : release.cover} width="200" height="200" className="rounded-md"/>
+                <Image alt="album image" src={release.cover.length === 0 ? DefaultCover : release.cover} width={200} height={200}  className="rounded-md"/>
             </div>
             <h2 className="text-md text-c1">{artistNames}</h2>
             <h1 className="text-md font-medium text-center px-4">{release.title}</h1>

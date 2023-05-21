@@ -1,50 +1,53 @@
 'use client'
 
-import { gql } from "@apollo/client";
 import ReleasePreview from "./preview";
 import { useSuspenseQuery } from "@apollo/experimental-nextjs-app-support/ssr";
-import { Tabs } from "flowbite-react";
-import { useState } from "react";
-import { queryAll } from '../util/queries'
+import { useEffect, useState } from "react";
+import { query } from '../util/queries'
+import { Button } from "flowbite-react";
+import { useLazyQuery } from "@apollo/client";
 
-export default function ReleasesGrid() {
-    const {data} = useSuspenseQuery<any>(queryAll({ releaseType: 'album' }))
-    const [pastReleases, setPastReleases] = useState<any>(data?.allTrendingReleases?.past)
-    const [weekReleases, setWeekReleases] = useState<any>(data?.allTrendingReleases?.week)
-    const [monthReleases, setMonthReleases] = useState<any>(data?.allTrendingReleases?.month)
-    const [extendedReleases, setExtendedReleases] = useState<any>(data?.allTrendingReleases?.extended)
+export default function ReleasesGrid({releaseType, period}: any) {
+    const {data: initialData} = useSuspenseQuery<any>(query, {variables: {
+        releaseType: releaseType,
+        direction: 'next',
+        reference: 0,
+        period: period
+    }})
+    const [releases, setReleases] = useState<any>(initialData?.trendingReleases?.releases)
+    const [getMoreReleases, {data: moreData}] = useLazyQuery<any>(query);
+    
+    useEffect(() => {
+        if (moreData) {
+            setReleases([...releases, ...moreData?.trendingReleases?.releases])
+        }
+    }, [moreData])
 
-
+    const handleShowMore = () => {
+        getMoreReleases({variables: {
+            releaseType: releaseType,
+            direction: 'next',
+            reference: releases.length,
+            period: period
+        }})
+    }
+    
     return (
-        <Tabs.Group>
-            <Tabs.Item title="Recent">
-                <div className="grid gap-16 grid-cols-fluid">
-                {pastReleases?.map((release: any) => (
-                    <ReleasePreview release={release}/>
-                ))}
-                </div>
-            </Tabs.Item>
-            <Tabs.Item title="This Week" active>
-                <div className="grid gap-16 grid-cols-fluid">
-                {weekReleases?.map((release: any) => (
-                    <ReleasePreview release={release}/>
-                ))}
-                </div>
-            </Tabs.Item>
-            <Tabs.Item title="Next Month">
-                <div className="grid gap-16 grid-cols-fluid">
-                {monthReleases?.map((release: any) => (
-                    <ReleasePreview release={release}/>
-                ))}
-                </div>
-            </Tabs.Item>
-            <Tabs.Item title="Too Long...">
-                <div className="grid gap-16 grid-cols-fluid">
-                {extendedReleases?.map((release: any) => (
-                    <ReleasePreview release={release}/>
-                ))}
-                </div>
-            </Tabs.Item>
-        </Tabs.Group>
+        <>
+        <div className="grid gap-16 grid-cols-fluid">
+            {releases?.map((release: any) => (
+                <ReleasePreview key={release._id} release={release}/>
+            ))}
+        </div>
+        <div className="pt-16 flex justify-center items-center">
+            <Button
+                color="light"
+                pill={true}
+                onClick={handleShowMore}
+            >
+                Show More
+            </Button>
+        </div>
+        </>
     )
 }
