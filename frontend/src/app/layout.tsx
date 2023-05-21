@@ -1,5 +1,8 @@
 import './globals.css'
 import { Inter } from 'next/font/google'
+import NavBar from '../components/navbar'
+import FlowbiteContext from '@/context/flowbite'
+import { ApolloWrapper } from '@/lib/apollo-provider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -15,7 +18,14 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>{children}</body>
+      <body className="bg-white max-w-7xl mx-auto px-6">
+        <FlowbiteContext>
+          <ApolloWrapper>
+            <NavBar/>
+            {children}
+            </ApolloWrapper>
+          </FlowbiteContext>;
+      </body>
     </html>
   )
 }

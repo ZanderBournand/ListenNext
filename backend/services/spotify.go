@@ -24,8 +24,14 @@ var (
 		os.Getenv("SPOTIFY_API_SCRAPING_CLIENT_IDS"),
 		os.Getenv("SPOTIFY_API_SCRAPING_CLIENT_IDS"),
 		os.Getenv("SPOTIFY_API_SCRAPING_CLIENT_IDS"),
+		os.Getenv("SPOTIFY_API_SCRAPING_CLIENT_IDS"),
+		os.Getenv("SPOTIFY_API_SCRAPING_CLIENT_IDS"),
+		os.Getenv("SPOTIFY_API_SCRAPING_CLIENT_IDS"),
 	}
 	scrapingClientSecrets = []string{
+		os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET"),
+		os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET"),
+		os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET"),
 		os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET"),
 		os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET"),
 		os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET"),
@@ -40,9 +46,10 @@ var (
 )
 
 func SpotifyScrapeTokens() {
-	tokens := make([]string, 3)
+	numTokens := len(scrapingClientIDs)
+	tokens := make([]string, numTokens)
 
-	for i := 0; i < 3; i++ {
+	for i := 0; i < numTokens; i++ {
 		req, err := http.NewRequest("POST", "https://accounts.spotify.com/api/token", strings.NewReader("grant_type=client_credentials"))
 		if err != nil {
 			panic(err)

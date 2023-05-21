@@ -37,6 +37,13 @@ type ReleasesList {
   next: Boolean!
 }
 
+type AllReleasesList {
+  past: [Release!]!
+  week: [Release!]!
+  month: [Release!]!
+  extended: [Release!]!
+}
+
 type User {
   _id: ID!
   display_name: String!
@@ -64,6 +71,8 @@ type AuthOps {
 }
 
 type Query {
+  allTrendingReleases(type: String!): AllReleasesList!
+    @goField(forceResolver: true)
   trendingReleases(input: ReleasesInput!): ReleasesList!
     @goField(forceResolver: true)
   release(id: Int!): Release! @goField(forceResolver: true)

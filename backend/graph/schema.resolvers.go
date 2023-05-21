@@ -31,6 +31,11 @@ func (r *mutationResolver) Auth(ctx context.Context) (*model.AuthOps, error) {
 	return &model.AuthOps{}, nil
 }
 
+// AllTrendingReleases is the resolver for the allTrendingReleases field.
+func (r *queryResolver) AllTrendingReleases(ctx context.Context, typeArg string) (*model.AllReleasesList, error) {
+	return services.GetAllTrendingReleases(ctx, typeArg), nil
+}
+
 // TrendingReleases is the resolver for the trendingReleases field.
 func (r *queryResolver) TrendingReleases(ctx context.Context, input model.ReleasesInput) (*model.ReleasesList, error) {
 	return db.GetTrendingReleases(input.Type, input.Direction, input.Reference, input.Period), nil

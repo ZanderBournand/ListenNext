@@ -6,6 +6,13 @@ import (
 	"time"
 )
 
+type AllReleasesList struct {
+	Past     []*Release `json:"past"`
+	Week     []*Release `json:"week"`
+	Month    []*Release `json:"month"`
+	Extended []*Release `json:"extended"`
+}
+
 type Artist struct {
 	SpotifyID             *string    `json:"spotify_id,omitempty"`
 	Name                  string     `json:"name"`

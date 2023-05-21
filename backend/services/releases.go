@@ -9,6 +9,42 @@ import (
 	"sync"
 )
 
+func GetAllTrendingReleases(ctx context.Context, releaseType string) *model.AllReleasesList {
+	var wg sync.WaitGroup
+	wg.Add(4)
+
+	var allReleases model.AllReleasesList
+
+	go func() {
+		defer wg.Done()
+
+		pastReleases := db.GetTrendingReleases(releaseType, "desc", 0, "past")
+		allReleases.Past = pastReleases.Releases
+	}()
+	go func() {
+		defer wg.Done()
+
+		weekReleases := db.GetTrendingReleases(releaseType, "desc", 0, "week")
+		allReleases.Week = weekReleases.Releases
+	}()
+	go func() {
+		defer wg.Done()
+
+		monthReleases := db.GetTrendingReleases(releaseType, "desc", 0, "month")
+		allReleases.Month = monthReleases.Releases
+	}()
+	go func() {
+		defer wg.Done()
+
+		extendedReleases := db.GetTrendingReleases(releaseType, "desc", 0, "extended")
+		allReleases.Extended = extendedReleases.Releases
+	}()
+
+	wg.Wait()
+
+	return &allReleases
+}
+
 func GetRecommendations(ctx context.Context, input model.RecommendationsInput) []*model.Release {
 	userID := middlewares.CtxUserID(ctx)
 	accessToken := SpotifyUserToken(userID)
