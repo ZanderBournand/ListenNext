@@ -1,6 +1,33 @@
 import { gql } from "@apollo/client";
 
-export const query = gql`
+export const queryReleasesCount = gql`
+  query GetAllReleasesCount{
+    allReleasesCount{
+      past{
+        all
+        albums
+        singles
+      }
+      week{
+        all
+        albums
+        singles
+      }
+      month{
+        all
+        albums
+        singles
+      }
+      extended{
+        all
+        albums
+        singles
+      }
+    }
+  }
+`;
+
+export const queryTrendingReleases = gql`
   query GetTrendingReleases($releaseType: String!, $direction: String!, $reference: Int!, $period: String!) {
     trendingReleases(input: {type: $releaseType, direction: $direction, reference: $reference, period: $period}) {
       releases {
@@ -14,11 +41,12 @@ export const query = gql`
         type
         trending_score
       }
+      next
     }
   }
 `;
 
-export const queryAll = ({ releaseType }: any) => gql`
+export const queryAllTrendingReleases = ({ releaseType }: any) => gql`
   query GetAllTrendingReleases {
     allTrendingReleases(type: "${releaseType}") {
         past {

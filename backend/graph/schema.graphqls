@@ -44,6 +44,19 @@ type AllReleasesList {
   extended: [Release!]!
 }
 
+type ReleasesCount {
+  all: Int!
+  albums: Int!
+  singles: Int!
+}
+
+type AllReleasesCount {
+  past: ReleasesCount!
+  week: ReleasesCount!
+  month: ReleasesCount!
+  extended: ReleasesCount!
+}
+
 type User {
   _id: ID!
   display_name: String!
@@ -71,6 +84,7 @@ type AuthOps {
 }
 
 type Query {
+  allReleasesCount: AllReleasesCount! @goField(forceResolver: true)
   allTrendingReleases(type: String!): AllReleasesList!
     @goField(forceResolver: true)
   trendingReleases(input: ReleasesInput!): ReleasesList!

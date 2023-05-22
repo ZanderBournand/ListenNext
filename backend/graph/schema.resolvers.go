@@ -31,6 +31,11 @@ func (r *mutationResolver) Auth(ctx context.Context) (*model.AuthOps, error) {
 	return &model.AuthOps{}, nil
 }
 
+// AllReleasesCount is the resolver for the allReleasesCount field.
+func (r *queryResolver) AllReleasesCount(ctx context.Context) (*model.AllReleasesCount, error) {
+	return db.GetAllReleasesCount(), nil
+}
+
 // AllTrendingReleases is the resolver for the allTrendingReleases field.
 func (r *queryResolver) AllTrendingReleases(ctx context.Context, typeArg string) (*model.AllReleasesList, error) {
 	return services.GetAllTrendingReleases(ctx, typeArg), nil

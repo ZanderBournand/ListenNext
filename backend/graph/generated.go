@@ -49,6 +49,13 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	AllReleasesCount struct {
+		Extended func(childComplexity int) int
+		Month    func(childComplexity int) int
+		Past     func(childComplexity int) int
+		Week     func(childComplexity int) int
+	}
+
 	AllReleasesList struct {
 		Extended func(childComplexity int) int
 		Month    func(childComplexity int) int
@@ -81,6 +88,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
+		AllReleasesCount    func(childComplexity int) int
 		AllTrendingReleases func(childComplexity int, typeArg string) int
 		Artist              func(childComplexity int, spotifyID string) int
 		Recommendations     func(childComplexity int, input model.RecommendationsInput) int
@@ -107,6 +115,12 @@ type ComplexityRoot struct {
 		Type          func(childComplexity int) int
 	}
 
+	ReleasesCount struct {
+		Albums  func(childComplexity int) int
+		All     func(childComplexity int) int
+		Singles func(childComplexity int) int
+	}
+
 	ReleasesList struct {
 		Next     func(childComplexity int) int
 		Prev     func(childComplexity int) int
@@ -129,6 +143,7 @@ type MutationResolver interface {
 	Auth(ctx context.Context) (*model.AuthOps, error)
 }
 type QueryResolver interface {
+	AllReleasesCount(ctx context.Context) (*model.AllReleasesCount, error)
 	AllTrendingReleases(ctx context.Context, typeArg string) (*model.AllReleasesList, error)
 	TrendingReleases(ctx context.Context, input model.ReleasesInput) (*model.ReleasesList, error)
 	Release(ctx context.Context, id int) (*model.Release, error)
@@ -152,6 +167,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "AllReleasesCount.extended":
+		if e.complexity.AllReleasesCount.Extended == nil {
+			break
+		}
+
+		return e.complexity.AllReleasesCount.Extended(childComplexity), true
+
+	case "AllReleasesCount.month":
+		if e.complexity.AllReleasesCount.Month == nil {
+			break
+		}
+
+		return e.complexity.AllReleasesCount.Month(childComplexity), true
+
+	case "AllReleasesCount.past":
+		if e.complexity.AllReleasesCount.Past == nil {
+			break
+		}
+
+		return e.complexity.AllReleasesCount.Past(childComplexity), true
+
+	case "AllReleasesCount.week":
+		if e.complexity.AllReleasesCount.Week == nil {
+			break
+		}
+
+		return e.complexity.AllReleasesCount.Week(childComplexity), true
 
 	case "AllReleasesList.extended":
 		if e.complexity.AllReleasesList.Extended == nil {
@@ -300,6 +343,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.Auth(childComplexity), true
+
+	case "Query.allReleasesCount":
+		if e.complexity.Query.AllReleasesCount == nil {
+			break
+		}
+
+		return e.complexity.Query.AllReleasesCount(childComplexity), true
 
 	case "Query.allTrendingReleases":
 		if e.complexity.Query.AllTrendingReleases == nil {
@@ -482,6 +532,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Release.Type(childComplexity), true
+
+	case "ReleasesCount.albums":
+		if e.complexity.ReleasesCount.Albums == nil {
+			break
+		}
+
+		return e.complexity.ReleasesCount.Albums(childComplexity), true
+
+	case "ReleasesCount.all":
+		if e.complexity.ReleasesCount.All == nil {
+			break
+		}
+
+		return e.complexity.ReleasesCount.All(childComplexity), true
+
+	case "ReleasesCount.singles":
+		if e.complexity.ReleasesCount.Singles == nil {
+			break
+		}
+
+		return e.complexity.ReleasesCount.Singles(childComplexity), true
 
 	case "ReleasesList.next":
 		if e.complexity.ReleasesList.Next == nil {
@@ -826,6 +897,214 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _AllReleasesCount_past(ctx context.Context, field graphql.CollectedField, obj *model.AllReleasesCount) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AllReleasesCount_past(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Past, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ReleasesCount)
+	fc.Result = res
+	return ec.marshalNReleasesCount2ᚖmainᚋgraphᚋmodelᚐReleasesCount(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AllReleasesCount_past(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AllReleasesCount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "all":
+				return ec.fieldContext_ReleasesCount_all(ctx, field)
+			case "albums":
+				return ec.fieldContext_ReleasesCount_albums(ctx, field)
+			case "singles":
+				return ec.fieldContext_ReleasesCount_singles(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ReleasesCount", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AllReleasesCount_week(ctx context.Context, field graphql.CollectedField, obj *model.AllReleasesCount) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AllReleasesCount_week(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Week, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ReleasesCount)
+	fc.Result = res
+	return ec.marshalNReleasesCount2ᚖmainᚋgraphᚋmodelᚐReleasesCount(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AllReleasesCount_week(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AllReleasesCount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "all":
+				return ec.fieldContext_ReleasesCount_all(ctx, field)
+			case "albums":
+				return ec.fieldContext_ReleasesCount_albums(ctx, field)
+			case "singles":
+				return ec.fieldContext_ReleasesCount_singles(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ReleasesCount", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AllReleasesCount_month(ctx context.Context, field graphql.CollectedField, obj *model.AllReleasesCount) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AllReleasesCount_month(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Month, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ReleasesCount)
+	fc.Result = res
+	return ec.marshalNReleasesCount2ᚖmainᚋgraphᚋmodelᚐReleasesCount(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AllReleasesCount_month(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AllReleasesCount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "all":
+				return ec.fieldContext_ReleasesCount_all(ctx, field)
+			case "albums":
+				return ec.fieldContext_ReleasesCount_albums(ctx, field)
+			case "singles":
+				return ec.fieldContext_ReleasesCount_singles(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ReleasesCount", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AllReleasesCount_extended(ctx context.Context, field graphql.CollectedField, obj *model.AllReleasesCount) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AllReleasesCount_extended(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Extended, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ReleasesCount)
+	fc.Result = res
+	return ec.marshalNReleasesCount2ᚖmainᚋgraphᚋmodelᚐReleasesCount(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AllReleasesCount_extended(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AllReleasesCount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "all":
+				return ec.fieldContext_ReleasesCount_all(ctx, field)
+			case "albums":
+				return ec.fieldContext_ReleasesCount_albums(ctx, field)
+			case "singles":
+				return ec.fieldContext_ReleasesCount_singles(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ReleasesCount", field.Name)
+		},
+	}
+	return fc, nil
+}
 
 func (ec *executionContext) _AllReleasesList_past(ctx context.Context, field graphql.CollectedField, obj *model.AllReleasesList) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_AllReleasesList_past(ctx, field)
@@ -1939,6 +2218,60 @@ func (ec *executionContext) fieldContext_Mutation_auth(ctx context.Context, fiel
 				return ec.fieldContext_AuthOps_spotifyLogin(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthOps", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_allReleasesCount(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_allReleasesCount(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().AllReleasesCount(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.AllReleasesCount)
+	fc.Result = res
+	return ec.marshalNAllReleasesCount2ᚖmainᚋgraphᚋmodelᚐAllReleasesCount(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_allReleasesCount(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "past":
+				return ec.fieldContext_AllReleasesCount_past(ctx, field)
+			case "week":
+				return ec.fieldContext_AllReleasesCount_week(ctx, field)
+			case "month":
+				return ec.fieldContext_AllReleasesCount_month(ctx, field)
+			case "extended":
+				return ec.fieldContext_AllReleasesCount_extended(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AllReleasesCount", field.Name)
 		},
 	}
 	return fc, nil
@@ -3241,6 +3574,138 @@ func (ec *executionContext) fieldContext_Release_artist_role(ctx context.Context
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ReleasesCount_all(ctx context.Context, field graphql.CollectedField, obj *model.ReleasesCount) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ReleasesCount_all(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.All, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ReleasesCount_all(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ReleasesCount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ReleasesCount_albums(ctx context.Context, field graphql.CollectedField, obj *model.ReleasesCount) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ReleasesCount_albums(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Albums, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ReleasesCount_albums(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ReleasesCount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ReleasesCount_singles(ctx context.Context, field graphql.CollectedField, obj *model.ReleasesCount) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ReleasesCount_singles(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Singles, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ReleasesCount_singles(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ReleasesCount",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5453,6 +5918,55 @@ func (ec *executionContext) unmarshalInputReleasesInput(ctx context.Context, obj
 
 // region    **************************** object.gotpl ****************************
 
+var allReleasesCountImplementors = []string{"AllReleasesCount"}
+
+func (ec *executionContext) _AllReleasesCount(ctx context.Context, sel ast.SelectionSet, obj *model.AllReleasesCount) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, allReleasesCountImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AllReleasesCount")
+		case "past":
+
+			out.Values[i] = ec._AllReleasesCount_past(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "week":
+
+			out.Values[i] = ec._AllReleasesCount_week(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "month":
+
+			out.Values[i] = ec._AllReleasesCount_month(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "extended":
+
+			out.Values[i] = ec._AllReleasesCount_extended(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var allReleasesListImplementors = []string{"AllReleasesList"}
 
 func (ec *executionContext) _AllReleasesList(ctx context.Context, sel ast.SelectionSet, obj *model.AllReleasesList) graphql.Marshaler {
@@ -5709,6 +6223,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
+		case "allReleasesCount":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_allReleasesCount(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
 		case "allTrendingReleases":
 			field := field
 
@@ -5971,6 +6508,48 @@ func (ec *executionContext) _Release(ctx context.Context, sel ast.SelectionSet, 
 
 			out.Values[i] = ec._Release_artist_role(ctx, field, obj)
 
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var releasesCountImplementors = []string{"ReleasesCount"}
+
+func (ec *executionContext) _ReleasesCount(ctx context.Context, sel ast.SelectionSet, obj *model.ReleasesCount) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, releasesCountImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ReleasesCount")
+		case "all":
+
+			out.Values[i] = ec._ReleasesCount_all(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "albums":
+
+			out.Values[i] = ec._ReleasesCount_albums(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "singles":
+
+			out.Values[i] = ec._ReleasesCount_singles(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6384,6 +6963,20 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) marshalNAllReleasesCount2mainᚋgraphᚋmodelᚐAllReleasesCount(ctx context.Context, sel ast.SelectionSet, v model.AllReleasesCount) graphql.Marshaler {
+	return ec._AllReleasesCount(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAllReleasesCount2ᚖmainᚋgraphᚋmodelᚐAllReleasesCount(ctx context.Context, sel ast.SelectionSet, v *model.AllReleasesCount) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._AllReleasesCount(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNAllReleasesList2mainᚋgraphᚋmodelᚐAllReleasesList(ctx context.Context, sel ast.SelectionSet, v model.AllReleasesList) graphql.Marshaler {
 	return ec._AllReleasesList(ctx, sel, &v)
 }
@@ -6678,6 +7271,16 @@ func (ec *executionContext) marshalNRelease2ᚖmainᚋgraphᚋmodelᚐRelease(ct
 		return graphql.Null
 	}
 	return ec._Release(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNReleasesCount2ᚖmainᚋgraphᚋmodelᚐReleasesCount(ctx context.Context, sel ast.SelectionSet, v *model.ReleasesCount) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ReleasesCount(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNReleasesInput2mainᚋgraphᚋmodelᚐReleasesInput(ctx context.Context, v interface{}) (model.ReleasesInput, error) {

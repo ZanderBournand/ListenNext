@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"main/graph/model"
+	"main/tools"
 	"main/types"
 	"strconv"
 	"strings"
@@ -126,40 +127,7 @@ func GetTrendingReleases(releaseType string, direction string, reference int, pe
 	limit := 30
 	offset := reference
 
-	now := time.Now()
-	now = time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, now.Location())
-
-	startDate := now
-	endDate := now
-
-	if period == "past" {
-		startDate = startDate.AddDate(0, 0, -14)
-		daysUntilFriday := (5 - int(startDate.Weekday()) + 7) % 7
-		startDate = startDate.AddDate(0, 0, daysUntilFriday+1)
-		endDate = endDate.AddDate(0, 0, -7)
-		daysUntilFriday = (5 - int(endDate.Weekday()) + 7) % 7
-		endDate = endDate.AddDate(0, 0, daysUntilFriday)
-	} else if period == "week" {
-		startDate = startDate.AddDate(0, 0, -7)
-		daysUntilFriday := (5 - int(startDate.Weekday()) + 7) % 7
-		startDate = startDate.AddDate(0, 0, daysUntilFriday+1)
-		daysUntilFriday = (5 - int(endDate.Weekday()) + 7) % 7
-		endDate = endDate.AddDate(0, 0, daysUntilFriday)
-	} else if period == "month" {
-		startDate = startDate.AddDate(0, 0, -7)
-		daysUntilFriday := (5 - int(startDate.Weekday()) + 7) % 7
-		startDate = startDate.AddDate(0, 0, daysUntilFriday+1)
-		endDate = endDate.AddDate(0, 0, 28)
-		daysUntilFriday = (5 - int(endDate.Weekday()) + 7) % 7
-		endDate = endDate.AddDate(0, 0, daysUntilFriday)
-	} else if period == "extended" {
-		startDate = startDate.AddDate(0, 0, -7)
-		daysUntilFriday := (5 - int(startDate.Weekday()) + 7) % 7
-		startDate = startDate.AddDate(0, 0, daysUntilFriday+1)
-		endDate = endDate.AddDate(0, 0, 84)
-		daysUntilFriday = (5 - int(endDate.Weekday()) + 7) % 7
-		endDate = endDate.AddDate(0, 0, daysUntilFriday)
-	}
+	startDate, endDate := tools.GetReleaseDates(period)
 
 	if direction == "previous" {
 		offset = reference - limit
@@ -305,6 +273,74 @@ func GetRelease(id int) *model.Release {
 	release := types.ScanToRelease(scanRelease)
 
 	return &release
+}
+
+func GetAllReleasesCount() *model.AllReleasesCount {
+	allReleasesCount := &model.AllReleasesCount{}
+
+	pastStartDate, pastEndDate := tools.GetReleaseDates("past")
+	weekStartDate, weekEndDate := tools.GetReleaseDates("week")
+	monthStartDate, monthEndDate := tools.GetReleaseDates("month")
+	extendedStartDate, extendedEndDate := tools.GetReleaseDates("extended")
+
+	query := `
+		SELECT
+			COUNT(*) FILTER (WHERE r.date >= $1 AND r.date <= $2) AS past_releases,
+			COUNT(*) FILTER (WHERE r.date >= $1 AND r.date <= $2 AND r.type != 'single') AS past_albums,
+			COUNT(*) FILTER (WHERE r.date >= $1 AND r.date <= $2 AND r.type = 'single') AS past_singles,
+			COUNT(*) FILTER (WHERE r.date >= $3 AND r.date <= $4) AS week_releases,
+			COUNT(*) FILTER (WHERE r.date >= $3 AND r.date <= $4 AND r.type != 'single') AS week_albums,
+			COUNT(*) FILTER (WHERE r.date >= $3 AND r.date <= $4 AND r.type = 'single') AS week_singles,
+			COUNT(*) FILTER (WHERE r.date >= $5 AND r.date <= $6) AS month_releases,
+			COUNT(*) FILTER (WHERE r.date >= $5 AND r.date <= $6 AND r.type != 'single') AS month_albums,
+			COUNT(*) FILTER (WHERE r.date >= $5 AND r.date <= $6 AND r.type = 'single') AS month_singles,
+			COUNT(*) FILTER (WHERE r.date >= $7 AND r.date <= $8) AS extended_releases,
+			COUNT(*) FILTER (WHERE r.date >= $7 AND r.date <= $8 AND r.type != 'single') AS extended_albums,
+			COUNT(*) FILTER (WHERE r.date >= $7 AND r.date <= $8 AND r.type = 'single') AS extended_singles
+		FROM releases AS r
+		WHERE r.trending_score IS NOT NULL
+	`
+
+	rows, err := db.Query(query, pastStartDate, pastEndDate, weekStartDate, weekEndDate, monthStartDate, monthEndDate, extendedStartDate, extendedEndDate)
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	if rows.Next() {
+		var pastReleases, pastAlbums, pastSingles, weekReleases, weekAlbums, weekSingles, monthReleases, monthAlbums, monthSingles, extendedReleases, extendedAlbums, extendedSingles int
+
+		err := rows.Scan(&pastReleases, &pastAlbums, &pastSingles, &weekReleases, &weekAlbums, &weekSingles, &monthReleases, &monthAlbums, &monthSingles, &extendedReleases, &extendedAlbums, &extendedSingles)
+		if err != nil {
+			panic(err)
+		}
+
+		allReleasesCount.Past = &model.ReleasesCount{
+			All:     pastReleases,
+			Albums:  pastAlbums,
+			Singles: pastSingles,
+		}
+
+		allReleasesCount.Week = &model.ReleasesCount{
+			All:     weekReleases,
+			Albums:  weekAlbums,
+			Singles: weekSingles,
+		}
+
+		allReleasesCount.Month = &model.ReleasesCount{
+			All:     monthReleases,
+			Albums:  monthAlbums,
+			Singles: monthSingles,
+		}
+
+		allReleasesCount.Extended = &model.ReleasesCount{
+			All:     extendedReleases,
+			Albums:  extendedAlbums,
+			Singles: extendedSingles,
+		}
+	}
+
+	return allReleasesCount
 }
 
 func releasesCount(releaseType string, startDate time.Time, endDate time.Time) int {

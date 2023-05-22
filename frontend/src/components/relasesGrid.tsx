@@ -3,33 +3,46 @@
 import ReleasePreview from "./preview";
 import { useSuspenseQuery } from "@apollo/experimental-nextjs-app-support/ssr";
 import { useEffect, useState } from "react";
-import { query } from '../util/queries'
+import { queryTrendingReleases } from '../util/queries'
 import { Button } from "flowbite-react";
 import { useLazyQuery } from "@apollo/client";
 
-export default function ReleasesGrid({releaseType, period}: any) {
-    const {data: initialData} = useSuspenseQuery<any>(query, {variables: {
-        releaseType: releaseType,
-        direction: 'next',
-        reference: 0,
-        period: period
-    }})
+export default function ReleasesGrid({releaseType, period}: any) {    
+    const {data: initialData} = useSuspenseQuery<any>(queryTrendingReleases, {
+        variables: {
+            releaseType: releaseType,
+            direction: 'next',
+            reference: 0,
+            period: period
+        }
+    })
     const [releases, setReleases] = useState<any>(initialData?.trendingReleases?.releases)
-    const [getMoreReleases, {data: moreData}] = useLazyQuery<any>(query);
+    const [showMore, setShowMore] = useState<boolean>(initialData?.trendingReleases?.next)
+    const [getMoreReleases, {data: moreData}] = useLazyQuery<any>(queryTrendingReleases);
+
+    useEffect(() => {
+        if (initialData) {
+            setReleases([...initialData?.trendingReleases?.releases])
+            setShowMore(initialData?.trendingReleases?.next)
+        }
+    }, [initialData])
     
     useEffect(() => {
         if (moreData) {
             setReleases([...releases, ...moreData?.trendingReleases?.releases])
+            setShowMore(moreData?.trendingReleases?.next)
         }
     }, [moreData])
 
     const handleShowMore = () => {
-        getMoreReleases({variables: {
-            releaseType: releaseType,
-            direction: 'next',
-            reference: releases.length,
-            period: period
-        }})
+        getMoreReleases({
+            variables: {
+                releaseType: releaseType,
+                direction: 'next',
+                reference: releases.length,
+                period: period
+            }
+        })
     }
     
     return (
@@ -39,6 +52,7 @@ export default function ReleasesGrid({releaseType, period}: any) {
                 <ReleasePreview key={release._id} release={release}/>
             ))}
         </div>
+        {showMore && 
         <div className="pt-16 flex justify-center items-center">
             <Button
                 color="light"
@@ -48,6 +62,7 @@ export default function ReleasesGrid({releaseType, period}: any) {
                 Show More
             </Button>
         </div>
+        }
         </>
     )
 }

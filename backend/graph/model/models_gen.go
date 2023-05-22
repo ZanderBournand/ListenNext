@@ -6,6 +6,13 @@ import (
 	"time"
 )
 
+type AllReleasesCount struct {
+	Past     *ReleasesCount `json:"past"`
+	Week     *ReleasesCount `json:"week"`
+	Month    *ReleasesCount `json:"month"`
+	Extended *ReleasesCount `json:"extended"`
+}
+
 type AllReleasesList struct {
 	Past     []*Release `json:"past"`
 	Week     []*Release `json:"week"`
@@ -58,6 +65,12 @@ type Release struct {
 	SpotifyID     *string   `json:"spotify_id,omitempty"`
 	TrendingScore *float64  `json:"trending_score,omitempty"`
 	ArtistRole    *string   `json:"artist_role,omitempty"`
+}
+
+type ReleasesCount struct {
+	All     int `json:"all"`
+	Albums  int `json:"albums"`
+	Singles int `json:"singles"`
 }
 
 type ReleasesInput struct {
