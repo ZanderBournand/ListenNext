@@ -1,11 +1,9 @@
 import './globals.css'
-import { Inter } from 'next/font/google'
 import NavBar from '../components/navbar'
 import FlowbiteContext from '@/context/flowbite'
 import { ApolloWrapper } from '@/lib/apollo-provider'
 import Bottom from '@/components/footer'
-
-const inter = Inter({ subsets: ['latin'] })
+import { SidebarProvider } from '@/context/sidebarContext'
 
 export const metadata = {
   title: 'Create Next App',
@@ -21,12 +19,14 @@ export default function RootLayout({
     <html lang="en">
       <body className="bg-white">
         <FlowbiteContext>
-          <ApolloWrapper>
-            <NavBar/>
-            {children}
-            <Bottom/>
+          <SidebarProvider>
+            <ApolloWrapper>
+              <NavBar/>
+              {children}
+              <Bottom/>
             </ApolloWrapper>
-          </FlowbiteContext>;
+          </SidebarProvider>
+        </FlowbiteContext>;
       </body>
     </html>
   )

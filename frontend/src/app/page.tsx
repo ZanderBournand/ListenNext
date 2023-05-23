@@ -1,9 +1,6 @@
 import ReleasesTabs from "@/components/releasesTabs";
-import TestSidebar from "@/components/sidebar";
-import { Button } from "flowbite-react";
-import { useState } from "react";
 
-export default async function Home() {  
+export default async function Home() {      
   return (
     <main>
       <div className="bg-white min-h-screen py-10">

@@ -13,15 +13,15 @@ export const flowbiteTheme: CustomFlowbiteTheme = {
   tab: {
     tablist: {
       styles: {
-        default: "flex flex-row items-center justify-center max-w-6xl mx-10 pb-4 w-full"
+        default: "flex flex-row items-center justify-center max-w-6xl mx-10 pr-16 pb-4 w-full"
       },
       tabitem: {
         base: "w-full py-2",
         styles: {
           default: {
             active: {
-              on: "text-c3 border-x border-t rounded-t-lg font-mediun text-lg",
-              off: "border-b hover:bg-gray-100/50 rounded-t-lg"
+              on: "text-c3 border-x border-t rounded-t-lg font-mediun sm:text-md md:text-lg",
+              off: "border-b hover:bg-gray-100/50 rounded-t-lg text-md sm:text-md md:text-lg"
             }
           }
         }
@@ -33,12 +33,13 @@ export const flowbiteTheme: CustomFlowbiteTheme = {
       span: "text-2xl font-semibold text-c1"
     },
     root: {
-      base: ""
+      base: "",
     }
   },
   sidebar: {
     root: {
-      inner: ""
-    }
+      base: "md:w-44 lg:w-64",
+      inner: "",
+    },
   }
 };

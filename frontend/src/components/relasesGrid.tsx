@@ -1,20 +1,19 @@
 'use client'
 
 import ReleasePreview from "./preview";
-import { useSuspenseQuery } from "@apollo/experimental-nextjs-app-support/ssr";
 import { useEffect, useState } from "react";
 import { queryTrendingReleases } from '../util/queries'
-import { Button } from "flowbite-react";
-import { useLazyQuery } from "@apollo/client";
+import { Button, Spinner } from "flowbite-react";
+import { useLazyQuery, useQuery } from "@apollo/client";
 
 export default function ReleasesGrid({releaseType, period}: any) {    
-    const {data: initialData} = useSuspenseQuery<any>(queryTrendingReleases, {
+    const {data: initialData, loading} = useQuery<any>(queryTrendingReleases, {
         variables: {
             releaseType: releaseType,
             direction: 'next',
             reference: 0,
             period: period
-        }
+        },
     })
     const [releases, setReleases] = useState<any>(initialData?.trendingReleases?.releases)
     const [showMore, setShowMore] = useState<boolean>(initialData?.trendingReleases?.next)
@@ -47,22 +46,33 @@ export default function ReleasesGrid({releaseType, period}: any) {
     
     return (
         <>
-        <div className="grid gap-16 grid-cols-fluid">
-            {releases?.map((release: any) => (
-                <ReleasePreview key={release._id} release={release}/>
-            ))}
-        </div>
-        {showMore && 
-        <div className="pt-16 flex justify-center items-center">
-            <Button
-                color="light"
-                pill={true}
-                onClick={handleShowMore}
-            >
-                Show More
-            </Button>
-        </div>
-        }
+        {loading ?
+            <div className="flex items-center justify-center pt-24">
+                <Spinner
+                    aria-label="Extra small spinner example"
+                    size="lg"
+                />
+            </div>
+            :
+            <>
+            <div className="grid gap-x-4 gap-y-12 grid-cols-fluid">
+                {releases?.map((release: any) => (
+                    <ReleasePreview key={release._id} release={release}/>
+                ))}
+            </div>
+            {showMore && 
+            <div className="pt-16 flex justify-center items-center">
+                <Button
+                    color="light"
+                    pill={true}
+                    onClick={handleShowMore}
+                >
+                    Show More
+                </Button>
+            </div>
+            }
+            </>
+        }   
         </>
     )
 }

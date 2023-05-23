@@ -18,6 +18,7 @@ import {
     });
   
     return new ApolloClient({
+      connectToDevTools: true,
       cache: new NextSSRInMemoryCache(),
       link:
         typeof window === "undefined"

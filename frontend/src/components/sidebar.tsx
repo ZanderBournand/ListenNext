@@ -1,46 +1,65 @@
 'use client'
 
+import { useQuery } from "@apollo/client";
 import { queryReleasesCount } from "@/util/queries";
-import { useSuspenseQuery } from "@apollo/experimental-nextjs-app-support/ssr";
 import { Sidebar as FlowbiteSidebar } from "flowbite-react";
+import '../animations/loading.css';
+import classNames from "classnames";
+import { useSidebarContext } from "@/context/sidebarContext";
 
-export default function Sidebar({period, setReleaseType}: any) {
-    const {data} = useSuspenseQuery<any>(queryReleasesCount)
+export default function Sidebar({period, releaseType, setReleaseType}: any) {    
+    const {data, loading} = useQuery<any>(queryReleasesCount, {
+        fetchPolicy: "network-only"
+    })
+    const { isOpenOnSmallScreens: isSidebarOpenOnSmallScreens } =
+    useSidebarContext();
     
     const handleFilterSwitch = (filerType: any) => {
         setReleaseType(filerType)
     }
     
     return (
-        <div className="flex flex-col w-auto bg-gray-100/50 rounded-xl h-96 sticky top-24">
+        <div className={classNames(
+                "flex flex-col w-auto bg-gray-100/100 mt-40 rounded-xl h-96 absolute top-24 z-10 md:sticky md:!block md:bg-gray-100/50 md:mt-0",
+                {
+                    hidden: !isSidebarOpenOnSmallScreens,
+                },
+            )}
+        >
             <h3 className="pl-8 py-4 text-xl font-semibold">Filter</h3>
             <div className="border-b border-slate-400 mx-6"></div>
             <FlowbiteSidebar aria-label="Default sidebar example" className="pt-6">
                 <FlowbiteSidebar.Items>
                 <FlowbiteSidebar.ItemGroup>
                     <FlowbiteSidebar.Item 
-                        href="#" 
-                        label={data?.allReleasesCount?.[period]?.all}
-                        abelColor="alternative" 
+                        label={(loading) ? 
+                            <div className="dot-flashing"></div>
+                            :
+                            data?.allReleasesCount?.[period]?.all
+                        }
                         onClick={() => handleFilterSwitch("all")}
                     >
-                    All
+                        <span className={releaseType === 'all' ? 'text-blue-500': ''}>All</span>
                     </FlowbiteSidebar.Item>
                     <FlowbiteSidebar.Item 
-                        href="#" 
-                        label={data?.allReleasesCount?.[period]?.albums}
-                        abelColor="alternative" 
+                        label={(loading) ? 
+                            <div className="dot-flashing"></div>
+                            :
+                            data?.allReleasesCount?.[period]?.albums
+                        }
                         onClick={() => handleFilterSwitch("album")}
                     >
-                    Albums
+                        <span className={releaseType === 'album' ? 'text-blue-500': ''}>Albums</span>
                     </FlowbiteSidebar.Item>
                     <FlowbiteSidebar.Item 
-                        href="#" 
-                        label={data?.allReleasesCount?.[period]?.singles}
-                        abelColor="alternative" 
+                        label={(loading) ? 
+                            <div className="dot-flashing"></div>
+                            :
+                            data?.allReleasesCount?.[period]?.singles
+                        }
                         onClick={() => handleFilterSwitch("single")}
                     >
-                    Singles
+                        <span className={releaseType === 'single' ? 'text-blue-500': ''}>Singles</span>
                     </FlowbiteSidebar.Item>
                 </FlowbiteSidebar.ItemGroup>
                 </FlowbiteSidebar.Items>
