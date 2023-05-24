@@ -47,7 +47,7 @@ export default function Sidebar({period, releaseType, setReleaseType}: any) {
             <div className="fixed top-0 left-0 right-0 bottom-0 bg-black opacity-50 z-40 md:hidden"></div>
         )}
         <div ref={sidebarRef} className={classNames(
-            "flex flex-col w-auto bg-gray-100/100 fixed top-0 left-0 z-40 w- h-screen transition-all transform  md:h-96 md:top-24 md:z-10 md:rounded-xl md:sticky md:!block md:bg-gray-100/50 md:mt-0 md:translate-x-0 md:duration-0",
+            "flex flex-col w-auto bg-slate-50 fixed top-0 left-0 z-40 w- h-screen transition-all transform  md:h-96 md:top-24 md:z-10 md:rounded-xl md:sticky md:!block md:bg-gray-100/50 md:mt-0 md:translate-x-0 md:duration-0",
             {
                 "duration-0 -translate-x-full block": !isOpenOnSmallScreens && !closeTransition,
                 "duration-300 -translate-x-full block": !isOpenOnSmallScreens && closeTransition,
