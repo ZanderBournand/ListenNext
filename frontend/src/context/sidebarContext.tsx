@@ -6,8 +6,12 @@ import { createContext, useContext, useEffect, useState } from "react";
 interface SidebarContextProps {
   isOpenOnSmallScreens: boolean;
   isPageWithSidebar: boolean;
+  closeTransition: boolean,
+  openTransition: boolean,
   // eslint-disable-next-line no-unused-vars
   setOpenOnSmallScreens: (isOpen: boolean) => void;
+  setCloseTransition: (isCloseTransition: boolean) => void
+  setOpenTransition: (isOpenTransition: boolean) => void
 }
 
 const SidebarContext = createContext<SidebarContextProps>(undefined!);
@@ -17,6 +21,8 @@ export function SidebarProvider({
 }: PropsWithChildren<Record<string, unknown>>) {
   const location = isBrowser() ? window.location.pathname : "/";
   const [isOpen, setOpen] = useState(false);
+  const [closeTransition, setCloseTransition] = useState(false)
+  const [openTransition, setOpenTransition] = useState(false)
 
   // Close Sidebar on page change on mobile
   useEffect(() => {
@@ -48,6 +54,10 @@ export function SidebarProvider({
         isOpenOnSmallScreens: isOpen,
         isPageWithSidebar: true,
         setOpenOnSmallScreens: setOpen,
+        closeTransition: closeTransition,
+        openTransition: openTransition,
+        setCloseTransition: setCloseTransition,
+        setOpenTransition: setOpenTransition
       }}
     >
       {children}
