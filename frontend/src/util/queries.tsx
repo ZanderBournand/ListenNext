@@ -1,5 +1,28 @@
 import { gql } from "@apollo/client";
 
+export const querySearchArtists = `
+  query SearchArtists($query: String!){
+    searchArtists(query: $query) {
+      results{
+        spotify_id
+        name
+        image
+        popularity
+        recent_releases_count
+        upcoming_releases_count
+      }
+    	related_artists{
+      	spotify_id
+        name
+        image
+        popularity
+        recent_releases_count
+        upcoming_releases_count
+    	}
+    }
+  }
+`
+
 export const queryReleasesCount = gql`
   query GetAllReleasesCount{
     allReleasesCount{

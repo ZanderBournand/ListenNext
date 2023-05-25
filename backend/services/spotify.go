@@ -230,6 +230,58 @@ func SpotifyUserTopTracks(accessToken string, spotifyArtists *[]types.SpotifyArt
 	return nil
 }
 
+func SpotifyRelatedArtist(artist *model.Artist) []*model.Artist {
+	endpoint := fmt.Sprintf("https://api.spotify.com/v1/artists/%s/related-artists", *artist.SpotifyID)
+
+	rand.Seed(time.Now().UnixNano())
+	tokenIndex := rand.Intn(len(scrapingTokens))
+
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		panic(err)
+	}
+	req.Header.Set("Authorization", "Bearer "+scrapingTokens[tokenIndex])
+
+	client := &http.Client{}
+	res, err := client.Do(req)
+	if err != nil || res.StatusCode != 200 {
+		panic(err)
+	}
+	defer res.Body.Close()
+
+	var data map[string]interface{}
+	err = json.NewDecoder(res.Body).Decode(&data)
+	if err != nil {
+		panic(err)
+	}
+
+	var relatedArtists []*model.Artist
+
+	relatedArtistsData := data["artists"].([]interface{})
+
+	for _, relatedArtistData := range relatedArtistsData {
+		var spotifyArtist model.Artist
+
+		spotifyArtist.Name = relatedArtistData.(map[string]interface{})["name"].(string)
+
+		spotifyId := relatedArtistData.(map[string]interface{})["id"].(string)
+		spotifyArtist.SpotifyID = &spotifyId
+
+		spotifyPopularity := int(relatedArtistData.(map[string]interface{})["popularity"].(float64))
+		spotifyArtist.Popularity = &spotifyPopularity
+
+		images := relatedArtistData.(map[string]interface{})["images"].([]interface{})
+		if len(images) > 0 {
+			url := images[0].(map[string]interface{})["url"].(string)
+			spotifyArtist.Image = &url
+		}
+
+		relatedArtists = append(relatedArtists, &spotifyArtist)
+	}
+
+	return relatedArtists
+}
+
 func SpotifyRelatedArtists(artists []types.SpotifyArtist) ([]types.SpotifyArtist, error) {
 	var wg sync.WaitGroup
 
@@ -591,7 +643,7 @@ func SpotifyRefreshToken(refreshToken string) (string, int, error) {
 	return token.AccessToken, token.ExpirationIn, nil
 }
 
-func SpotifySearchArtists(query string) ([]*model.Artist, error) {
+func SpotifySearchArtists(query string) (*model.SearchArtists, error) {
 	queryLimit := 10
 
 	spotifyURL := fmt.Sprintf("https://api.spotify.com/v1/search?type=artist&q=%s&limit=%d", url.QueryEscape(query), queryLimit)
@@ -605,6 +657,7 @@ func SpotifySearchArtists(query string) ([]*model.Artist, error) {
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil || res.StatusCode != 200 {
+		fmt.Println(res.StatusCode)
 		fmt.Println("SPOTIFY ERROR!!!!")
 		return nil, err
 	}
@@ -616,16 +669,22 @@ func SpotifySearchArtists(query string) ([]*model.Artist, error) {
 		return nil, err
 	}
 
+	var searchResults model.SearchArtists
 	var spotifyArtists []*model.Artist
 
+	var wg sync.WaitGroup
+
 	artists := data["artists"].(map[string]interface{})["items"].([]interface{})
-	for _, artist := range artists {
+	for i, artist := range artists {
 		var spotifyArtist model.Artist
 
 		spotifyArtist.Name = artist.(map[string]interface{})["name"].(string)
 
 		spotifyId := artist.(map[string]interface{})["id"].(string)
 		spotifyArtist.SpotifyID = &spotifyId
+
+		spotifyPopularity := int(artist.(map[string]interface{})["popularity"].(float64))
+		spotifyArtist.Popularity = &spotifyPopularity
 
 		images := artist.(map[string]interface{})["images"].([]interface{})
 		if len(images) > 0 {
@@ -634,9 +693,22 @@ func SpotifySearchArtists(query string) ([]*model.Artist, error) {
 		}
 
 		spotifyArtists = append(spotifyArtists, &spotifyArtist)
-	}
 
-	return spotifyArtists, nil
+		if i == 0 {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				related := SpotifyRelatedArtist(&spotifyArtist)
+				searchResults.RelatedArtists = related
+			}()
+		}
+	}
+	searchResults.Results = spotifyArtists
+
+	wg.Wait()
+
+	return &searchResults, nil
 }
 
 func SpotifyArtist(spotifyId string) (*model.Artist, error) {

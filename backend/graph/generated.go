@@ -68,6 +68,7 @@ type ComplexityRoot struct {
 		Genres                func(childComplexity int) int
 		Image                 func(childComplexity int) int
 		Name                  func(childComplexity int) int
+		Popularity            func(childComplexity int) int
 		RecentReleases        func(childComplexity int) int
 		RecentReleasesCount   func(childComplexity int) int
 		Singles               func(childComplexity int) int
@@ -127,6 +128,11 @@ type ComplexityRoot struct {
 		Releases func(childComplexity int) int
 	}
 
+	SearchArtists struct {
+		RelatedArtists func(childComplexity int) int
+		Results        func(childComplexity int) int
+	}
+
 	User struct {
 		DisplayName func(childComplexity int) int
 		Email       func(childComplexity int) int
@@ -149,7 +155,7 @@ type QueryResolver interface {
 	Release(ctx context.Context, id int) (*model.Release, error)
 	User(ctx context.Context, id string) (*model.User, error)
 	Recommendations(ctx context.Context, input model.RecommendationsInput) ([]*model.Release, error)
-	SearchArtists(ctx context.Context, query string) ([]*model.Artist, error)
+	SearchArtists(ctx context.Context, query string) (*model.SearchArtists, error)
 	Artist(ctx context.Context, spotifyID string) (*model.Artist, error)
 }
 
@@ -251,6 +257,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Artist.Name(childComplexity), true
+
+	case "Artist.popularity":
+		if e.complexity.Artist.Popularity == nil {
+			break
+		}
+
+		return e.complexity.Artist.Popularity(childComplexity), true
 
 	case "Artist.recent_releases":
 		if e.complexity.Artist.RecentReleases == nil {
@@ -574,6 +587,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ReleasesList.Releases(childComplexity), true
+
+	case "SearchArtists.related_artists":
+		if e.complexity.SearchArtists.RelatedArtists == nil {
+			break
+		}
+
+		return e.complexity.SearchArtists.RelatedArtists(childComplexity), true
+
+	case "SearchArtists.results":
+		if e.complexity.SearchArtists.Results == nil {
+			break
+		}
+
+		return e.complexity.SearchArtists.Results(childComplexity), true
 
 	case "User.display_name":
 		if e.complexity.User.DisplayName == nil {
@@ -1564,6 +1591,47 @@ func (ec *executionContext) fieldContext_Artist_genres(ctx context.Context, fiel
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Artist_popularity(ctx context.Context, field graphql.CollectedField, obj *model.Artist) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Artist_popularity(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Popularity, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Artist_popularity(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Artist",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -2684,9 +2752,9 @@ func (ec *executionContext) _Query_searchArtists(ctx context.Context, field grap
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*model.Artist)
+	res := resTmp.(*model.SearchArtists)
 	fc.Result = res
-	return ec.marshalNArtist2ᚕᚖmainᚋgraphᚋmodelᚐArtist(ctx, field.Selections, res)
+	return ec.marshalNSearchArtists2ᚖmainᚋgraphᚋmodelᚐSearchArtists(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_searchArtists(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2697,30 +2765,12 @@ func (ec *executionContext) fieldContext_Query_searchArtists(ctx context.Context
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "spotify_id":
-				return ec.fieldContext_Artist_spotify_id(ctx, field)
-			case "name":
-				return ec.fieldContext_Artist_name(ctx, field)
-			case "image":
-				return ec.fieldContext_Artist_image(ctx, field)
-			case "genres":
-				return ec.fieldContext_Artist_genres(ctx, field)
-			case "recent_releases_count":
-				return ec.fieldContext_Artist_recent_releases_count(ctx, field)
-			case "upcoming_releases_count":
-				return ec.fieldContext_Artist_upcoming_releases_count(ctx, field)
-			case "recent_releases":
-				return ec.fieldContext_Artist_recent_releases(ctx, field)
-			case "upcoming_releases":
-				return ec.fieldContext_Artist_upcoming_releases(ctx, field)
-			case "top_tracks":
-				return ec.fieldContext_Artist_top_tracks(ctx, field)
-			case "singles":
-				return ec.fieldContext_Artist_singles(ctx, field)
-			case "albums":
-				return ec.fieldContext_Artist_albums(ctx, field)
+			case "results":
+				return ec.fieldContext_SearchArtists_results(ctx, field)
+			case "related_artists":
+				return ec.fieldContext_SearchArtists_related_artists(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Artist", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type SearchArtists", field.Name)
 		},
 	}
 	defer func() {
@@ -2784,6 +2834,8 @@ func (ec *executionContext) fieldContext_Query_artist(ctx context.Context, field
 				return ec.fieldContext_Artist_image(ctx, field)
 			case "genres":
 				return ec.fieldContext_Artist_genres(ctx, field)
+			case "popularity":
+				return ec.fieldContext_Artist_popularity(ctx, field)
 			case "recent_releases_count":
 				return ec.fieldContext_Artist_recent_releases_count(ctx, field)
 			case "upcoming_releases_count":
@@ -3077,6 +3129,8 @@ func (ec *executionContext) fieldContext_Release_artists(ctx context.Context, fi
 				return ec.fieldContext_Artist_image(ctx, field)
 			case "genres":
 				return ec.fieldContext_Artist_genres(ctx, field)
+			case "popularity":
+				return ec.fieldContext_Artist_popularity(ctx, field)
 			case "recent_releases_count":
 				return ec.fieldContext_Artist_recent_releases_count(ctx, field)
 			case "upcoming_releases_count":
@@ -3142,6 +3196,8 @@ func (ec *executionContext) fieldContext_Release_featurings(ctx context.Context,
 				return ec.fieldContext_Artist_image(ctx, field)
 			case "genres":
 				return ec.fieldContext_Artist_genres(ctx, field)
+			case "popularity":
+				return ec.fieldContext_Artist_popularity(ctx, field)
 			case "recent_releases_count":
 				return ec.fieldContext_Artist_recent_releases_count(ctx, field)
 			case "upcoming_releases_count":
@@ -3868,6 +3924,146 @@ func (ec *executionContext) fieldContext_ReleasesList_next(ctx context.Context, 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SearchArtists_results(ctx context.Context, field graphql.CollectedField, obj *model.SearchArtists) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SearchArtists_results(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Results, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Artist)
+	fc.Result = res
+	return ec.marshalNArtist2ᚕᚖmainᚋgraphᚋmodelᚐArtist(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SearchArtists_results(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SearchArtists",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "spotify_id":
+				return ec.fieldContext_Artist_spotify_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Artist_name(ctx, field)
+			case "image":
+				return ec.fieldContext_Artist_image(ctx, field)
+			case "genres":
+				return ec.fieldContext_Artist_genres(ctx, field)
+			case "popularity":
+				return ec.fieldContext_Artist_popularity(ctx, field)
+			case "recent_releases_count":
+				return ec.fieldContext_Artist_recent_releases_count(ctx, field)
+			case "upcoming_releases_count":
+				return ec.fieldContext_Artist_upcoming_releases_count(ctx, field)
+			case "recent_releases":
+				return ec.fieldContext_Artist_recent_releases(ctx, field)
+			case "upcoming_releases":
+				return ec.fieldContext_Artist_upcoming_releases(ctx, field)
+			case "top_tracks":
+				return ec.fieldContext_Artist_top_tracks(ctx, field)
+			case "singles":
+				return ec.fieldContext_Artist_singles(ctx, field)
+			case "albums":
+				return ec.fieldContext_Artist_albums(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Artist", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SearchArtists_related_artists(ctx context.Context, field graphql.CollectedField, obj *model.SearchArtists) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_SearchArtists_related_artists(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RelatedArtists, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Artist)
+	fc.Result = res
+	return ec.marshalNArtist2ᚕᚖmainᚋgraphᚋmodelᚐArtist(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_SearchArtists_related_artists(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SearchArtists",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "spotify_id":
+				return ec.fieldContext_Artist_spotify_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Artist_name(ctx, field)
+			case "image":
+				return ec.fieldContext_Artist_image(ctx, field)
+			case "genres":
+				return ec.fieldContext_Artist_genres(ctx, field)
+			case "popularity":
+				return ec.fieldContext_Artist_popularity(ctx, field)
+			case "recent_releases_count":
+				return ec.fieldContext_Artist_recent_releases_count(ctx, field)
+			case "upcoming_releases_count":
+				return ec.fieldContext_Artist_upcoming_releases_count(ctx, field)
+			case "recent_releases":
+				return ec.fieldContext_Artist_recent_releases(ctx, field)
+			case "upcoming_releases":
+				return ec.fieldContext_Artist_upcoming_releases(ctx, field)
+			case "top_tracks":
+				return ec.fieldContext_Artist_top_tracks(ctx, field)
+			case "singles":
+				return ec.fieldContext_Artist_singles(ctx, field)
+			case "albums":
+				return ec.fieldContext_Artist_albums(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Artist", field.Name)
 		},
 	}
 	return fc, nil
@@ -6045,6 +6241,10 @@ func (ec *executionContext) _Artist(ctx context.Context, sel ast.SelectionSet, o
 
 			out.Values[i] = ec._Artist_genres(ctx, field, obj)
 
+		case "popularity":
+
+			out.Values[i] = ec._Artist_popularity(ctx, field, obj)
+
 		case "recent_releases_count":
 
 			out.Values[i] = ec._Artist_recent_releases_count(ctx, field, obj)
@@ -6588,6 +6788,41 @@ func (ec *executionContext) _ReleasesList(ctx context.Context, sel ast.Selection
 		case "next":
 
 			out.Values[i] = ec._ReleasesList_next(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var searchArtistsImplementors = []string{"SearchArtists"}
+
+func (ec *executionContext) _SearchArtists(ctx context.Context, sel ast.SelectionSet, obj *model.SearchArtists) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, searchArtistsImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SearchArtists")
+		case "results":
+
+			out.Values[i] = ec._SearchArtists_results(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "related_artists":
+
+			out.Values[i] = ec._SearchArtists_related_artists(ctx, field, obj)
 
 			if out.Values[i] == graphql.Null {
 				invalids++
@@ -7300,6 +7535,20 @@ func (ec *executionContext) marshalNReleasesList2ᚖmainᚋgraphᚋmodelᚐRelea
 		return graphql.Null
 	}
 	return ec._ReleasesList(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNSearchArtists2mainᚋgraphᚋmodelᚐSearchArtists(ctx context.Context, sel ast.SelectionSet, v model.SearchArtists) graphql.Marshaler {
+	return ec._SearchArtists(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSearchArtists2ᚖmainᚋgraphᚋmodelᚐSearchArtists(ctx context.Context, sel ast.SelectionSet, v *model.SearchArtists) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._SearchArtists(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {

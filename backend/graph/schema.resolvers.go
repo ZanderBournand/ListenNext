@@ -62,7 +62,7 @@ func (r *queryResolver) Recommendations(ctx context.Context, input model.Recomme
 }
 
 // SearchArtists is the resolver for the searchArtists field.
-func (r *queryResolver) SearchArtists(ctx context.Context, query string) ([]*model.Artist, error) {
+func (r *queryResolver) SearchArtists(ctx context.Context, query string) (*model.SearchArtists, error) {
 	return services.SearchArtists(ctx, query), nil
 }
 

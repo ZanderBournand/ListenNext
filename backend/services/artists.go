@@ -64,13 +64,24 @@ func GetArtist(spotifyID string) *model.Artist {
 	return artist
 }
 
-func SearchArtists(ctx context.Context, query string) []*model.Artist {
-	artists, _ := SpotifySearchArtists(query)
+func SearchArtists(ctx context.Context, query string) *model.SearchArtists {
+	searchResults, _ := SpotifySearchArtists(query)
 
 	var wg sync.WaitGroup
-	wg.Add(len(artists))
+	wg.Add(len(searchResults.Results) + len(searchResults.RelatedArtists))
 
-	for _, artist := range artists {
+	for _, artist := range searchResults.Results {
+		go func(artist *model.Artist) {
+			defer wg.Done()
+
+			err := db.FindArtistReleaseCount(artist)
+			if err != nil {
+				fmt.Println("Error fetching artist recent/upcoming release count")
+			}
+		}(artist)
+	}
+
+	for _, artist := range searchResults.RelatedArtists {
 		go func(artist *model.Artist) {
 			defer wg.Done()
 
@@ -83,5 +94,5 @@ func SearchArtists(ctx context.Context, query string) []*model.Artist {
 
 	wg.Wait()
 
-	return artists
+	return searchResults
 }

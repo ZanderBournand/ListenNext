@@ -12,7 +12,7 @@ func main() {
 	services.SpotifyGeneralToken()
 	services.SpotifyScrapeTokens()
 
-	services.ScrapeReleases()
+	// services.ScrapeReleases()
 
 	api.Setup()
 }

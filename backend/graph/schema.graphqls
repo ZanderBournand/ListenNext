@@ -68,6 +68,7 @@ type Artist {
   name: String!
   image: String
   genres: [String!]
+  popularity: Int
   recent_releases_count: Int
   upcoming_releases_count: Int
   recent_releases: [Release!]
@@ -75,6 +76,11 @@ type Artist {
   top_tracks: [Release!]
   singles: [Release!]
   albums: [Release!]
+}
+
+type SearchArtists {
+  results: [Artist]!
+  related_artists: [Artist]!
 }
 
 type AuthOps {
@@ -94,7 +100,7 @@ type Query {
   recommendations(input: RecommendationsInput!): [Release]!
     @goField(forceResolver: true)
     @spotify
-  searchArtists(query: String!): [Artist]! @goField(forceResolver: true)
+  searchArtists(query: String!): SearchArtists! @goField(forceResolver: true)
   artist(spotify_id: String!): Artist! @goField(forceResolver: true)
 }
 

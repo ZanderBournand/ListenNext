@@ -41,5 +41,14 @@ export const flowbiteTheme: CustomFlowbiteTheme = {
       base: "md:w-44 lg:w-64",
       inner: "",
     },
+  },
+  badge: {
+    root: {
+      color: {
+        ["light"]: "bg-blue-200/50 text-c3",
+        ["medium"]: "bg-blue-500/25 text-c1",
+        ["dark"]: "bg-blue-700/25 text-blue-950",
+      }
+    }
   }
 };

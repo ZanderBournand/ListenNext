@@ -25,6 +25,7 @@ type Artist struct {
 	Name                  string     `json:"name"`
 	Image                 *string    `json:"image,omitempty"`
 	Genres                []string   `json:"genres,omitempty"`
+	Popularity            *int       `json:"popularity,omitempty"`
 	RecentReleasesCount   *int       `json:"recent_releases_count,omitempty"`
 	UpcomingReleasesCount *int       `json:"upcoming_releases_count,omitempty"`
 	RecentReleases        []*Release `json:"recent_releases,omitempty"`
@@ -84,4 +85,9 @@ type ReleasesList struct {
 	Releases []*Release `json:"releases"`
 	Prev     bool       `json:"prev"`
 	Next     bool       `json:"next"`
+}
+
+type SearchArtists struct {
+	Results        []*Artist `json:"results"`
+	RelatedArtists []*Artist `json:"related_artists"`
 }
