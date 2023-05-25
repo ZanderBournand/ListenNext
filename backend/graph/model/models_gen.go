@@ -37,6 +37,7 @@ type Artist struct {
 
 type AuthOps struct {
 	Login        interface{} `json:"login"`
+	RefreshLogin *User       `json:"refreshLogin"`
 	Register     interface{} `json:"register"`
 	SpotifyLogin interface{} `json:"spotifyLogin"`
 }

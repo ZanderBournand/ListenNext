@@ -16,6 +16,11 @@ func (r *authOpsResolver) Login(ctx context.Context, obj *model.AuthOps, email s
 	return services.UserLogin(ctx, email, password)
 }
 
+// RefreshLogin is the resolver for the refreshLogin field.
+func (r *authOpsResolver) RefreshLogin(ctx context.Context, obj *model.AuthOps) (*model.User, error) {
+	return services.RefreshLogin(ctx), nil
+}
+
 // Register is the resolver for the register field.
 func (r *authOpsResolver) Register(ctx context.Context, obj *model.AuthOps, input model.NewUser) (interface{}, error) {
 	return services.UserRegister(ctx, input)

@@ -6,13 +6,14 @@ import (
 	"main/config"
 	"main/db"
 	"main/graph/model"
+	"main/middlewares"
 	"main/tools"
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
 )
 
 func UserRegister(ctx context.Context, input model.NewUser) (interface{}, error) {
-	user, err := db.UserGetByEmail(ctx, input.Email)
+	_, err := db.UserGetByEmail(ctx, input.Email)
 	if err == nil {
 		if err != sql.ErrNoRows {
 			return nil, err
@@ -30,15 +31,25 @@ func UserRegister(ctx context.Context, input model.NewUser) (interface{}, error)
 	}
 
 	userClient := model.UserClient{
-		ID:          user.ID,
-		Email:       user.Email,
-		DisplayName: user.DisplayName,
+		ID:          createdUser.ID,
+		Email:       createdUser.Email,
+		DisplayName: createdUser.DisplayName,
 	}
 
 	return map[string]interface{}{
 		"user":  userClient,
 		"token": jwtToken,
 	}, nil
+}
+
+func RefreshLogin(ctx context.Context) *model.User {
+	userId := middlewares.CtxUserID(ctx)
+	user, err := db.UserGetByID(ctx, userId)
+	if err != nil {
+		return nil
+	}
+
+	return user
 }
 
 func UserLogin(ctx context.Context, email string, password string) (interface{}, error) {

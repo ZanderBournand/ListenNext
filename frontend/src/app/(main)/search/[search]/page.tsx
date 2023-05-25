@@ -3,7 +3,6 @@ import RelatedSearch from "@/components/relatedSearch";
 import { querySearchArtists } from "@/util/queries";
 
 export default async function Search({params}: any) {      
-    console.log(params.search)
     const { data } = await fetch("http://localhost:8000/query", {
         method: "POST",
         headers: {

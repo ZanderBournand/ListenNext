@@ -3,8 +3,6 @@
 import { Badge, Card } from "flowbite-react";
 import Image from "next/image";
 import DefaultCover from "../../public/default_album.png"
-import { Flame } from "lucide-react";
-import ArtistPopularity from "./artistPopularity";
 import { ReduceName } from "@/util/titles";
 
 export default function RelatedSearch({artist}: any) {

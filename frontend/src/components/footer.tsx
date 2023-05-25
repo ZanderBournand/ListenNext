@@ -21,14 +21,14 @@ export default function Bottom() {
                         ListenNext
                         </a>
                     </div>
-                    <Footer.LinkGroup>
-                        <Footer.Link href="#">
+                    <Footer.LinkGroup className="w-full justify-start pt-2 sm:justify-end">
+                        <Footer.Link href="#" className="px-3 md:px-0">
                         About
                         </Footer.Link>
-                        <Footer.Link href="#">
+                        <Footer.Link href="#" className="px-3 md:px-0">
                         Privacy Policy
                         </Footer.Link>
-                        <Footer.Link href="#">
+                        <Footer.Link href="#" className="px-3 md:px-0">
                         Contact
                         </Footer.Link>
                     </Footer.LinkGroup>

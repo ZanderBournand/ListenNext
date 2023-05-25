@@ -80,6 +80,7 @@ type ComplexityRoot struct {
 
 	AuthOps struct {
 		Login        func(childComplexity int, email string, password string) int
+		RefreshLogin func(childComplexity int) int
 		Register     func(childComplexity int, input model.NewUser) int
 		SpotifyLogin func(childComplexity int, code string) int
 	}
@@ -142,6 +143,7 @@ type ComplexityRoot struct {
 
 type AuthOpsResolver interface {
 	Login(ctx context.Context, obj *model.AuthOps, email string, password string) (interface{}, error)
+	RefreshLogin(ctx context.Context, obj *model.AuthOps) (*model.User, error)
 	Register(ctx context.Context, obj *model.AuthOps, input model.NewUser) (interface{}, error)
 	SpotifyLogin(ctx context.Context, obj *model.AuthOps, code string) (interface{}, error)
 }
@@ -325,6 +327,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AuthOps.Login(childComplexity, args["email"].(string), args["password"].(string)), true
+
+	case "AuthOps.refreshLogin":
+		if e.complexity.AuthOps.RefreshLogin == nil {
+			break
+		}
+
+		return e.complexity.AuthOps.RefreshLogin(childComplexity), true
 
 	case "AuthOps.register":
 		if e.complexity.AuthOps.Register == nil {
@@ -2129,6 +2138,78 @@ func (ec *executionContext) fieldContext_AuthOps_login(ctx context.Context, fiel
 	return fc, nil
 }
 
+func (ec *executionContext) _AuthOps_refreshLogin(ctx context.Context, field graphql.CollectedField, obj *model.AuthOps) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AuthOps_refreshLogin(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.AuthOps().RefreshLogin(rctx, obj)
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Auth == nil {
+				return nil, errors.New("directive auth is not implemented")
+			}
+			return ec.directives.Auth(ctx, obj, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.User); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *main/graph/model.User`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.User)
+	fc.Result = res
+	return ec.marshalNUser2ᚖmainᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AuthOps_refreshLogin(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AuthOps",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "_id":
+				return ec.fieldContext_User__id(ctx, field)
+			case "display_name":
+				return ec.fieldContext_User_display_name(ctx, field)
+			case "email":
+				return ec.fieldContext_User_email(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _AuthOps_register(ctx context.Context, field graphql.CollectedField, obj *model.AuthOps) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_AuthOps_register(ctx, field)
 	if err != nil {
@@ -2280,6 +2361,8 @@ func (ec *executionContext) fieldContext_Mutation_auth(ctx context.Context, fiel
 			switch field.Name {
 			case "login":
 				return ec.fieldContext_AuthOps_login(ctx, field)
+			case "refreshLogin":
+				return ec.fieldContext_AuthOps_refreshLogin(ctx, field)
 			case "register":
 				return ec.fieldContext_AuthOps_register(ctx, field)
 			case "spotifyLogin":
@@ -6304,6 +6387,26 @@ func (ec *executionContext) _AuthOps(ctx context.Context, sel ast.SelectionSet, 
 					}
 				}()
 				res = ec._AuthOps_login(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return innerFunc(ctx)
+
+			})
+		case "refreshLogin":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._AuthOps_refreshLogin(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

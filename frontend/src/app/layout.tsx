@@ -1,9 +1,9 @@
 import './globals.css'
-import NavBar from '../components/navbar'
 import FlowbiteContext from '@/context/flowbite'
 import { ApolloWrapper } from '@/lib/apollo-provider'
-import Bottom from '@/components/footer'
 import { SidebarProvider } from '@/context/sidebarContext'
+import UserContextProvider from "@/context/userContext";
+import LoginRefresher from '@/components/loginRefresh';
 
 export const metadata = {
   title: 'Create Next App',
@@ -19,13 +19,14 @@ export default function RootLayout({
     <html lang="en">
       <body className="bg-white">
         <FlowbiteContext>
-          <SidebarProvider>
-            <ApolloWrapper>
-              <NavBar/>
-              {children}
-              <Bottom/>
-            </ApolloWrapper>
-          </SidebarProvider>
+          <UserContextProvider>
+            <SidebarProvider>
+              <ApolloWrapper>
+                <LoginRefresher/>
+                {children}
+              </ApolloWrapper>
+            </SidebarProvider>
+          </UserContextProvider>
         </FlowbiteContext>;
       </body>
     </html>
