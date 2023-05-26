@@ -1,13 +1,16 @@
 'use client'
 
 import { UserContext } from "@/context/userContext";
-import { loginUser, registerUser } from "@/util/mutations";
+import { loginUser, registerUser, spotifyLogin } from "@/util/mutations";
+import { SpotifyLoginUrl } from "@/util/queries";
 import { Badge, Button, Card, Checkbox, Label, TextInput } from "flowbite-react";
 import { useRouter } from 'next/navigation';
-import React, { useContext, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
+import { useSearchParams } from 'next/navigation';
 
 export default function Login() {
     const router = useRouter();  
+    const params = useSearchParams();
   
     const [login, setLogin] = useState<any>(true)
     const [displayName, setDisplayName] = useState("");
@@ -20,6 +23,55 @@ export default function Login() {
     const [loading, setLoading] = useState(false)
 
     const { setUser } = useContext(UserContext);
+
+    useEffect(() => {
+    const fetchData = async () => {
+      const code = params.get('code');
+      if (code !== null) {
+        setLoading(true);
+        const response = await fetch("http://localhost:8000/query", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          cache: 'no-store',
+          body: JSON.stringify({
+            query: spotifyLogin,
+            variables: {
+              code: code
+            }
+          }),
+        });
+        const { data } = await response.json();
+        setLoading(false);
+
+        const token = data?.auth?.spotifyLogin?.token;
+        localStorage.setItem('token', token);
+
+        setUser(data?.auth?.spotifyLogin?.user);
+        router.push("/");
+      }
+    };
+
+    fetchData();
+  }, []);
+
+    const handleSpotifyLogin = async () => {
+      const { data } = await fetch("http://localhost:8000/query", {
+          method: "POST",
+          headers: {
+              "Content-Type": "application/json",
+          },
+          cache: 'no-store',
+          body: JSON.stringify({
+              query: SpotifyLoginUrl,
+          }),
+      }).then((res) => res.json());
+
+      if (data !== null) {
+        window.location.href = data?.spotifyUrl
+      }
+    }
     
     const handleFormSubmit = async (event: any) => {
         event.preventDefault();
@@ -90,7 +142,11 @@ export default function Login() {
                 {login ? "Sign in to your account" : "Create a new account"}
               </h1>
             <div className="flex justify-evenly items-center pt-0 flex-col sm:flex-row sm:pt-1">
-                <Button color="light" className="w-full py-0 mx-2 mt-2 mb-4 sm:mt-0 sm:w-max sm:mb-0">
+                <Button 
+                color="light" 
+                className="w-full py-0 mx-2 mt-2 mb-4 sm:mt-0 sm:w-max sm:mb-0"
+                onClick={handleSpotifyLogin}
+                >
                     <svg
                         xmlns="http://www.w3.org/2000/svg"
                         aria-label="Spotify"
@@ -168,7 +224,7 @@ export default function Login() {
                     setEmailTaken(false)
                     setWrongLoginInfo(false)
                   }}
-                  helperText={emailTaken ? <React.Fragment><span className="font-medium text-red-500 pl-1">Oops!</span>{' '}<span className="text-red-500">Username already taken!</span></React.Fragment>: wrongLoginInfo ? <React.Fragment><span className="font-medium text-red-500 pl-1">Oops!</span>{' '}<span className="text-red-500">Email and/or password are incorrect!</span></React.Fragment> : ""}
+                  helperText={emailTaken ? <React.Fragment><span className="font-medium text-red-500 pl-1">Oops!</span>{' '}<span className="text-red-500">Email already taken!</span></React.Fragment>: wrongLoginInfo ? <React.Fragment><span className="font-medium text-red-500 pl-1">Oops!</span>{' '}<span className="text-red-500">Email and/or password are incorrect!</span></React.Fragment> : ""}
                 />
               </div>
               <div>

@@ -96,6 +96,7 @@ type ComplexityRoot struct {
 		Recommendations     func(childComplexity int, input model.RecommendationsInput) int
 		Release             func(childComplexity int, id int) int
 		SearchArtists       func(childComplexity int, query string) int
+		SpotifyURL          func(childComplexity int) int
 		TrendingReleases    func(childComplexity int, input model.ReleasesInput) int
 		User                func(childComplexity int, id string) int
 	}
@@ -151,6 +152,7 @@ type MutationResolver interface {
 	Auth(ctx context.Context) (*model.AuthOps, error)
 }
 type QueryResolver interface {
+	SpotifyURL(ctx context.Context) (string, error)
 	AllReleasesCount(ctx context.Context) (*model.AllReleasesCount, error)
 	AllTrendingReleases(ctx context.Context, typeArg string) (*model.AllReleasesList, error)
 	TrendingReleases(ctx context.Context, input model.ReleasesInput) (*model.ReleasesList, error)
@@ -432,6 +434,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.SearchArtists(childComplexity, args["query"].(string)), true
+
+	case "Query.spotifyUrl":
+		if e.complexity.Query.SpotifyURL == nil {
+			break
+		}
+
+		return e.complexity.Query.SpotifyURL(childComplexity), true
 
 	case "Query.trendingReleases":
 		if e.complexity.Query.TrendingReleases == nil {
@@ -2369,6 +2378,50 @@ func (ec *executionContext) fieldContext_Mutation_auth(ctx context.Context, fiel
 				return ec.fieldContext_AuthOps_spotifyLogin(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type AuthOps", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_spotifyUrl(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_spotifyUrl(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Query().SpotifyURL(rctx)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_spotifyUrl(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6526,6 +6579,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Query")
+		case "spotifyUrl":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_spotifyUrl(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
 		case "allReleasesCount":
 			field := field
 

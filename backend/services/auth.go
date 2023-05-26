@@ -10,6 +10,7 @@ import (
 	"main/tools"
 
 	"github.com/vektah/gqlparser/v2/gqlerror"
+	"golang.org/x/oauth2"
 )
 
 func UserRegister(ctx context.Context, input model.NewUser) (interface{}, error) {
@@ -127,4 +128,10 @@ func SpotifyUserLogin(ctx context.Context, code string) (interface{}, error) {
 		"user":  userClient,
 		"token": jwtToken,
 	}, nil
+}
+
+func GetSpotifyLoginUrl() string {
+	url := config.SpotifyOAuth.AuthCodeURL("state-token", oauth2.AccessTypeOffline)
+
+	return url
 }

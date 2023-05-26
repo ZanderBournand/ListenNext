@@ -29,3 +29,11 @@ export const refreshLogin = `
     }
   }
 `
+
+export const spotifyLogin = `
+  mutation SpotifyLogin($code: String!){
+    auth{
+      spotifyLogin(code: $code)
+    }
+  }
+`

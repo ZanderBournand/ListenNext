@@ -2,17 +2,18 @@ import Image from "next/image";
 import DefaultCover from "../../public/default_album.png"
 import { Badge } from "flowbite-react";
 import { CalendarCheck } from "lucide-react";
+import { DateTime } from "luxon";
 
 export default function ReleasePreview({release}: any) {
     const artistNames = release.artists.map((artist: any) => artist.name).join(", ");
     
-    const date = new Date(release?.release_date);
-    const month = date.toLocaleString('en-US', { month: 'long' });
-    const day = date.getDate();
-    const formattedDate = month + ' ' + day;
+    const date = DateTime.fromISO(release?.release_date).toUTC();
+    const formattedDate = date.toFormat('MMMM d');
 
-    const currentDate = new Date();
-    const hasPassed = date <= currentDate
+    const releaseDate = DateTime.fromISO(release?.release_date);
+    const currentDateETC = DateTime.now().setZone('America/New_York').startOf('day');
+
+    const hasPassed = currentDateETC > releaseDate;
     
     return (
         <div className="flex flex-col items-center justify-start">

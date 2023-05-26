@@ -1,5 +1,11 @@
 import { gql } from "@apollo/client";
 
+export const SpotifyLoginUrl = `
+  query SpotifyLoginUrl {
+    spotifyUrl
+  }
+`
+
 export const querySearchArtists = `
   query SearchArtists($query: String!){
     searchArtists(query: $query) {

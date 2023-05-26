@@ -7,12 +7,12 @@ import (
 )
 
 func main() {
+	// Connecting to postgres database
 	db.Connect()
 
-	services.SpotifyGeneralToken()
-	services.SpotifyScrapeTokens()
+	// Schedule all cron jobs
+	services.StartJobs()
 
-	// services.ScrapeReleases()
-
+	// Open API port for incoming requests
 	api.Setup()
 }

@@ -5,7 +5,7 @@ import "golang.org/x/oauth2"
 var SpotifyOAuth = &oauth2.Config{
 	ClientID:     os.Getenv("SPOTIFY_API_GENERAL_CLIENT_ID"),
 	ClientSecret: os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET"),
-	RedirectURL:  "http://localhost:8000/callback",
+	RedirectURL:  "http://localhost:3000/login",
 	Endpoint: oauth2.Endpoint{
 		AuthURL:  "https://accounts.spotify.com/authorize",
 		TokenURL: "https://accounts.spotify.com/api/token",

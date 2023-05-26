@@ -5,7 +5,7 @@ import { refreshLogin } from "@/util/mutations";
 import { useContext, useEffect } from "react"
 
 export default function LoginRefresher() {
-    const { setUser } = useContext(UserContext)
+    const { setUser, setLoadingUser } = useContext(UserContext)
 
     useEffect(() => {
         const fetchData = async () => {
@@ -17,7 +17,7 @@ export default function LoginRefresher() {
                         "Content-Type": "application/json",
                         "Authorization": `Bearer ${cachedUser}`,
                     },
-                    cache: 'no-store',
+                    cache: 'no-cache',
                     body: JSON.stringify({
                         query: refreshLogin,
                     }),
@@ -27,6 +27,7 @@ export default function LoginRefresher() {
                     setUser(data?.auth?.refreshLogin)
                 }
             }
+            setLoadingUser(false)
         };
 
         fetchData();

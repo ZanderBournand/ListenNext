@@ -36,6 +36,11 @@ func (r *mutationResolver) Auth(ctx context.Context) (*model.AuthOps, error) {
 	return &model.AuthOps{}, nil
 }
 
+// SpotifyURL is the resolver for the spotifyUrl field.
+func (r *queryResolver) SpotifyURL(ctx context.Context) (string, error) {
+	return services.GetSpotifyLoginUrl(), nil
+}
+
 // AllReleasesCount is the resolver for the allReleasesCount field.
 func (r *queryResolver) AllReleasesCount(ctx context.Context) (*model.AllReleasesCount, error) {
 	return db.GetAllReleasesCount(), nil
