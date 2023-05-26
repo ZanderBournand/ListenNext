@@ -7,6 +7,7 @@ import (
 )
 
 type authString string
+type loginStypeString string
 
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -30,6 +31,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 
 		ctx := context.WithValue(r.Context(), authString("auth"), customClaim)
 		ctx = context.WithValue(ctx, authString("userID"), customClaim.ID)
+		ctx = context.WithValue(ctx, loginStypeString("loginType"), customClaim.LoginType)
 
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
@@ -43,5 +45,10 @@ func CtxValue(ctx context.Context) *tools.JwtCustomClaim {
 
 func CtxUserID(ctx context.Context) string {
 	raw, _ := ctx.Value(authString("userID")).(string)
+	return raw
+}
+
+func CtxLoginType(ctx context.Context) string {
+	raw, _ := ctx.Value(loginStypeString("loginType")).(string)
 	return raw
 }

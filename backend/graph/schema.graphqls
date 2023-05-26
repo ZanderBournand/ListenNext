@@ -85,7 +85,7 @@ type SearchArtists {
 
 type AuthOps {
   login(email: String!, password: String!): Any! @goField(forceResolver: true)
-  refreshLogin: User! @goField(forceResolver: true) @auth
+  refreshLogin: Any! @goField(forceResolver: true) @auth
   register(input: NewUser!): Any! @goField(forceResolver: true)
   spotifyLogin(code: String!): Any! @goField(forceResolver: true)
 }

@@ -17,7 +17,7 @@ func (r *authOpsResolver) Login(ctx context.Context, obj *model.AuthOps, email s
 }
 
 // RefreshLogin is the resolver for the refreshLogin field.
-func (r *authOpsResolver) RefreshLogin(ctx context.Context, obj *model.AuthOps) (*model.User, error) {
+func (r *authOpsResolver) RefreshLogin(ctx context.Context, obj *model.AuthOps) (interface{}, error) {
 	return services.RefreshLogin(ctx), nil
 }
 

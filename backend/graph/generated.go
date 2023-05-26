@@ -144,7 +144,7 @@ type ComplexityRoot struct {
 
 type AuthOpsResolver interface {
 	Login(ctx context.Context, obj *model.AuthOps, email string, password string) (interface{}, error)
-	RefreshLogin(ctx context.Context, obj *model.AuthOps) (*model.User, error)
+	RefreshLogin(ctx context.Context, obj *model.AuthOps) (interface{}, error)
 	Register(ctx context.Context, obj *model.AuthOps, input model.NewUser) (interface{}, error)
 	SpotifyLogin(ctx context.Context, obj *model.AuthOps, code string) (interface{}, error)
 }
@@ -2178,10 +2178,10 @@ func (ec *executionContext) _AuthOps_refreshLogin(ctx context.Context, field gra
 		if tmp == nil {
 			return nil, nil
 		}
-		if data, ok := tmp.(*model.User); ok {
+		if data, ok := tmp.(interface{}); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *main/graph/model.User`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be interface{}`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2193,9 +2193,9 @@ func (ec *executionContext) _AuthOps_refreshLogin(ctx context.Context, field gra
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.User)
+	res := resTmp.(interface{})
 	fc.Result = res
-	return ec.marshalNUser2ᚖmainᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+	return ec.marshalNAny2interface(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_AuthOps_refreshLogin(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -2205,15 +2205,7 @@ func (ec *executionContext) fieldContext_AuthOps_refreshLogin(ctx context.Contex
 		IsMethod:   true,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "_id":
-				return ec.fieldContext_User__id(ctx, field)
-			case "display_name":
-				return ec.fieldContext_User_display_name(ctx, field)
-			case "email":
-				return ec.fieldContext_User_email(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+			return nil, errors.New("field of type Any does not have child fields")
 		},
 	}
 	return fc, nil

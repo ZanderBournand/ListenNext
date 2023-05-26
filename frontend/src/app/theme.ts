@@ -50,5 +50,13 @@ export const flowbiteTheme: CustomFlowbiteTheme = {
         ["dark"]: "bg-blue-700/25 text-blue-950",
       }
     }
+  },
+  alert: {
+    closeButton: {
+      color: {
+        info: "bg-blue-200/0 hover:bg-blue-200/25"
+      },
+      icon: "h-6 w-6 fill-c3"
+    }
   }
 };

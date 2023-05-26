@@ -21,11 +21,7 @@ export const loginUser = `
 export const refreshLogin = `
   mutation RefreshLogin {
     auth{
-      refreshLogin{
-        _id
-        email
-        display_name
-      }
+      refreshLogin
     }
   }
 `

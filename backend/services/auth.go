@@ -32,9 +32,10 @@ func UserRegister(ctx context.Context, input model.NewUser) (interface{}, error)
 	}
 
 	userClient := model.UserClient{
-		ID:          createdUser.ID,
-		Email:       createdUser.Email,
-		DisplayName: createdUser.DisplayName,
+		ID:              createdUser.ID,
+		Email:           createdUser.Email,
+		DisplayName:     createdUser.DisplayName,
+		IsStreamingAuth: false,
 	}
 
 	return map[string]interface{}{
@@ -43,14 +44,23 @@ func UserRegister(ctx context.Context, input model.NewUser) (interface{}, error)
 	}, nil
 }
 
-func RefreshLogin(ctx context.Context) *model.User {
+func RefreshLogin(ctx context.Context) *model.UserClient {
 	userId := middlewares.CtxUserID(ctx)
+	loginType := middlewares.CtxLoginType(ctx)
+
 	user, err := db.UserGetByID(ctx, userId)
 	if err != nil {
 		return nil
 	}
 
-	return user
+	userClient := model.UserClient{
+		ID:              user.ID,
+		Email:           user.Email,
+		DisplayName:     user.DisplayName,
+		IsStreamingAuth: loginType == "spotify",
+	}
+
+	return &userClient
 }
 
 func UserLogin(ctx context.Context, email string, password string) (interface{}, error) {
@@ -74,9 +84,10 @@ func UserLogin(ctx context.Context, email string, password string) (interface{},
 	}
 
 	userClient := model.UserClient{
-		ID:          user.ID,
-		Email:       user.Email,
-		DisplayName: user.DisplayName,
+		ID:              user.ID,
+		Email:           user.Email,
+		DisplayName:     user.DisplayName,
+		IsStreamingAuth: false,
 	}
 
 	return map[string]interface{}{
@@ -119,9 +130,10 @@ func SpotifyUserLogin(ctx context.Context, code string) (interface{}, error) {
 	}
 
 	userClient := model.UserClient{
-		ID:          user.ID,
-		Email:       user.Email,
-		DisplayName: user.DisplayName,
+		ID:              user.ID,
+		Email:           user.Email,
+		DisplayName:     user.DisplayName,
+		IsStreamingAuth: true,
 	}
 
 	return map[string]interface{}{

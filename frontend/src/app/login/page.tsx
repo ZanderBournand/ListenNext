@@ -5,9 +5,8 @@ import Login from "@/components/login";
 
 export default async function Home() {      
   return (
-    <main>
-      <div className="bg-white py-10">
-        <div className="max-w-7xl mx-auto px-6 flex flex-col items-center py-12 sm:py-24">
+    <main className="flex w-full">
+      <div className="max-w-7xl w-full mx-auto px-6 flex flex-col items-center md:px-6 xs:px-16">
           <div className="flex flex-row items-center">
             <Image
               alt="Flowbite logo"
@@ -20,7 +19,6 @@ export default async function Home() {
             </a>
           </div>
           <Login/>
-        </div>
       </div>
     </main>
   );  

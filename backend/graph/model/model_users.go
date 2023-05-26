@@ -8,7 +8,8 @@ type User struct {
 }
 
 type UserClient struct {
-	ID          string `json:"_id"`
-	DisplayName string `json:"display_name"`
-	Email       string `json:"email"`
+	ID              string `json:"_id"`
+	DisplayName     string `json:"display_name"`
+	Email           string `json:"email"`
+	IsStreamingAuth bool   `json:"is_streaming_auth"`
 }
