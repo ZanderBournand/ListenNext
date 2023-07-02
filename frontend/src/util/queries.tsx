@@ -6,6 +6,12 @@ export const SpotifyLoginUrl = `
   }
 `
 
+export const LastScrapeTime = `
+  query LastScrapeTime {
+    lastScrapeTime
+  }
+`
+
 export const querySearchArtists = `
   query SearchArtists($query: String!){
     searchArtists(query: $query) {

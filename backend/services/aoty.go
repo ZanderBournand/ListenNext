@@ -27,9 +27,10 @@ const (
 )
 
 func Upload(releases map[string][]types.Release) {
-	updateTime := time.Now()
+	updateTime := time.Now().UTC()
+	db.UpdateLastScrapeTime(updateTime)
 
-	semaphore := make(chan struct{}, 50)
+	semaphore := make(chan struct{}, 5)
 
 	var wg sync.WaitGroup
 

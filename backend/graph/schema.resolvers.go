@@ -9,6 +9,7 @@ import (
 	"main/db"
 	"main/graph/model"
 	"main/services"
+	"time"
 )
 
 // Login is the resolver for the login field.
@@ -39,6 +40,11 @@ func (r *mutationResolver) Auth(ctx context.Context) (*model.AuthOps, error) {
 // SpotifyURL is the resolver for the spotifyUrl field.
 func (r *queryResolver) SpotifyURL(ctx context.Context) (string, error) {
 	return services.GetSpotifyLoginUrl(), nil
+}
+
+// LastScrapeTime is the resolver for the lastScrapeTime field.
+func (r *queryResolver) LastScrapeTime(ctx context.Context) (*time.Time, error) {
+	return db.GetLastScrapeTime(), nil
 }
 
 // AllReleasesCount is the resolver for the allReleasesCount field.

@@ -22,18 +22,8 @@ import (
 var (
 	scrapingClientIDs = []string{
 		os.Getenv("SPOTIFY_API_SCRAPING_CLIENT_IDS"),
-		os.Getenv("SPOTIFY_API_SCRAPING_CLIENT_IDS"),
-		os.Getenv("SPOTIFY_API_SCRAPING_CLIENT_IDS"),
-		os.Getenv("SPOTIFY_API_SCRAPING_CLIENT_IDS"),
-		os.Getenv("SPOTIFY_API_SCRAPING_CLIENT_IDS"),
-		os.Getenv("SPOTIFY_API_SCRAPING_CLIENT_IDS"),
 	}
 	scrapingClientSecrets = []string{
-		os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET"),
-		os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET"),
-		os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET"),
-		os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET"),
-		os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET"),
 		os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET"),
 	}
 	generalClientID     = os.Getenv("SPOTIFY_API_GENERAL_CLIENT_ID")
@@ -516,7 +506,7 @@ func SpotifySearch(artist string) (*types.SpotifyArtist, error) {
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil || res.StatusCode != 200 {
-		fmt.Println("SPOTIFY ERROR!!!!")
+		fmt.Println("SPOTIFY ERROR! ON SpotifySearch()")
 		return nil, err
 	}
 	defer res.Body.Close()
@@ -658,7 +648,7 @@ func SpotifySearchArtists(query string) (*model.SearchArtists, error) {
 	res, err := client.Do(req)
 	if err != nil || res.StatusCode != 200 {
 		fmt.Println(res.StatusCode)
-		fmt.Println("SPOTIFY ERROR!!!!")
+		fmt.Println("SPOTIFY ERROR! ON SpotifySearchArtists()")
 		return nil, err
 	}
 	defer res.Body.Close()
@@ -723,7 +713,7 @@ func SpotifyArtist(spotifyId string) (*model.Artist, error) {
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil || res.StatusCode != 200 {
-		fmt.Println("SPOTIFY ERROR!!!!")
+		fmt.Println("SPOTIFY ERROR! ON SpotifyArtist()")
 		return nil, err
 	}
 	defer res.Body.Close()
@@ -767,7 +757,7 @@ func SpotifyArtistTopTracks(artist *model.Artist) error {
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil || res.StatusCode != 200 {
-		fmt.Println("SPOTIFY ERROR!!!!")
+		fmt.Println("SPOTIFY ERROR! ON SpotifyArtistTopTracks()")
 		return err
 	}
 	defer res.Body.Close()
@@ -840,7 +830,7 @@ func SpotifyArtistSingles(artist *model.Artist) error {
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil || res.StatusCode != 200 {
-		fmt.Println("SPOTIFY ERROR!!!!")
+		fmt.Println("SPOTIFY ERROR! ON SpotifyArtistSingles()")
 		return err
 	}
 	defer res.Body.Close()
@@ -906,7 +896,7 @@ func SpotifyArtistAlbums(artist *model.Artist) error {
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil || res.StatusCode != 200 {
-		fmt.Println("SPOTIFY ERROR!!!!")
+		fmt.Println("SPOTIFY ERROR! ON SpotifyArtistAlbums()")
 		return err
 	}
 	defer res.Body.Close()

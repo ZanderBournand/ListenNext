@@ -92,6 +92,7 @@ type AuthOps {
 
 type Query {
   spotifyUrl: String! @goField(forceResolver: true)
+  lastScrapeTime: Time! @goField(forceResolver: true)
   allReleasesCount: AllReleasesCount! @goField(forceResolver: true)
   allTrendingReleases(type: String!): AllReleasesList!
     @goField(forceResolver: true)
