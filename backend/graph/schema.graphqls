@@ -44,6 +44,14 @@ type AllReleasesList {
   extended: [Release!]!
 }
 
+type AllRecommendations {
+  past: [Release!]!
+  week: [Release!]!
+  month: [Release!]!
+  extended: [Release!]!
+  artists: [Artist!]!
+}
+
 type ReleasesCount {
   all: Int!
   albums: Int!
@@ -103,6 +111,7 @@ type Query {
   recommendations(input: RecommendationsInput!): [Release]!
     @goField(forceResolver: true)
     @spotify
+  allRecommendations: AllRecommendations! @goField(forceResolver: true) @spotify
   searchArtists(query: String!): SearchArtists! @goField(forceResolver: true)
   artist(spotify_id: String!): Artist! @goField(forceResolver: true)
 }

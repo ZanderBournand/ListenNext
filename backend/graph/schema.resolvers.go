@@ -77,6 +77,11 @@ func (r *queryResolver) Recommendations(ctx context.Context, input model.Recomme
 	return services.GetRecommendations(ctx, input), nil
 }
 
+// AllRecommendations is the resolver for the allRecommendations field.
+func (r *queryResolver) AllRecommendations(ctx context.Context) (*model.AllRecommendations, error) {
+	return services.GetAllRecommendations(ctx), nil
+}
+
 // SearchArtists is the resolver for the searchArtists field.
 func (r *queryResolver) SearchArtists(ctx context.Context, query string) (*model.SearchArtists, error) {
 	return services.SearchArtists(ctx, query), nil

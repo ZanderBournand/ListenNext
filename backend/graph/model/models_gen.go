@@ -6,6 +6,14 @@ import (
 	"time"
 )
 
+type AllRecommendations struct {
+	Past     []*Release `json:"past"`
+	Week     []*Release `json:"week"`
+	Month    []*Release `json:"month"`
+	Extended []*Release `json:"extended"`
+	Artists  []*Artist  `json:"artists"`
+}
+
 type AllReleasesCount struct {
 	Past     *ReleasesCount `json:"past"`
 	Week     *ReleasesCount `json:"week"`

@@ -24,7 +24,6 @@ export default function LoginRefresher() {
                 }).then((res) => res.json());
 
                 if (data !== null) {
-                    console.log(data?.auth?.refreshLogin.is_streaming_auth)
                     setUser(data?.auth?.refreshLogin)
                 }
             }

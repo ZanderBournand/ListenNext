@@ -378,3 +378,39 @@ func FindArtistUpcomingReleases(artist *model.Artist) error {
 
 	return nil
 }
+
+func FindMatchingArtistNames(names []string) ([]*model.Artist, error) {
+	var artists []*model.Artist
+
+	var placeholders []string
+	for _, name := range names {
+		placeholders = append(placeholders, "'"+name+"'")
+	}
+
+	query := `
+		SELECT name, spotify_id, popularity
+		FROM Artists
+		WHERE name IN (` + strings.Join(placeholders, ", ") + `)
+		ORDER BY popularity DESC
+	`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var artist model.Artist
+		if err := rows.Scan(&artist.Name, &artist.SpotifyID, &artist.Popularity); err != nil {
+			return nil, err
+		}
+		artists = append(artists, &artist)
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return artists, nil
+}

@@ -1,3 +1,4 @@
+import RecommendationsAccess from "@/components/recommendationsAccess";
 import RecommendationsAlert from "@/components/recommendationsAlert";
 import ReleasesTabs from "@/components/releasesTabs";
 import { LastScrapeTime } from "@/util/queries";
@@ -15,7 +16,6 @@ export default async function Home() {
     }),
   }).then((res) => res.json())
     .then((res) => {
-      console.log("PARSING")
       if (res?.data?.lastScrapeTime) {
         const utcTimestamp = new Date(res?.data?.lastScrapeTime);
         return getTimeSince(utcTimestamp);
@@ -27,9 +27,12 @@ export default async function Home() {
     <main>
       <div className="bg-white min-h-screen py-10">
         <div className="max-w-7xl flex flex-col mx-auto px-6 pl-10 pb-8">
-          <h1 className="w-full sm:w-2/6 text-c4 text-2xl font-semibold pb-6">
-            New Releases <span className="text-sm bg-red"> - updated {lastScrapeTime}</span>
-          </h1>
+          <div className="flex flex-col md:flex-row">
+            <h1 className="text-c4 text-2xl font-semibold pb-6">
+              New Releases <span className="text-sm bg-red"> - updated {lastScrapeTime}</span>
+            </h1>
+            <RecommendationsAccess/>
+          </div>
           <div className="flex w-full">
             <RecommendationsAlert/>
           </div>

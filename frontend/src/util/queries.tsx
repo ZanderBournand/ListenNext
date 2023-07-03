@@ -35,6 +35,62 @@ export const querySearchArtists = `
   }
 `
 
+export const queryAllRecommendations = `
+  query AllRecommendations {
+    allRecommendations {
+      artists {
+        name
+        popularity
+        spotify_id
+      }
+      past {
+        _id
+        title
+        artists{
+        name
+        }
+        release_date
+        cover
+        type
+        trending_score
+      }
+      week {
+        _id
+        title
+        artists{
+        name
+        }
+        release_date
+        cover
+        type
+        trending_score
+      }
+      month {
+        _id
+        title
+        artists{
+        name
+        }
+        release_date
+        cover
+        type
+        trending_score
+      }
+      extended {
+        _id
+        title
+        artists{
+        name
+        }
+        release_date
+        cover
+        type
+        trending_score
+      }
+    }
+  }
+`
+
 export const queryReleasesCount = gql`
   query GetAllReleasesCount{
     allReleasesCount{

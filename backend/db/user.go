@@ -112,7 +112,9 @@ func UploadUserRecommendations(UserId string, releases []*model.Release) {
 	}
 }
 
-func GetUserRecommendations(UserId string) ([]*model.Release, error) {
+func GetUserRecommendations(UserId string, period string) ([]*model.Release, error) {
+	startDate, endDate := tools.GetReleaseDates(period)
+
 	query := `
 		SELECT r.id, r.title, array_agg(DISTINCT main.name) AS artists, array_agg(DISTINCT feature.name) AS featurings, array_agg(DISTINCT main.spotify_id) AS artists_spotify_ids, array_agg(DISTINCT feature.spotify_id) AS featurings_spotify_ids, r.date, r.cover, array_agg(DISTINCT g.type) AS genres, array_agg(DISTINCT p.name) AS producers, r.tracklist, r.type, r.aoty_id, r.trending_score
 		FROM releases AS r
@@ -128,6 +130,7 @@ func GetUserRecommendations(UserId string) ([]*model.Release, error) {
 		WHERE r.trending_score IS NOT NULL
 	`
 
+	query += fmt.Sprintf(" AND r.date >= '%s' AND r.date <= '%s'", startDate.Format("2006-01-02"), endDate.Format("2006-01-02"))
 	query += fmt.Sprintf(" AND ur.user_id = '%s'", UserId)
 	query += " GROUP BY r.id ORDER BY r.trending_score DESC, r.id DESC"
 

@@ -45,6 +45,148 @@ func GetAllTrendingReleases(ctx context.Context, releaseType string) *model.AllR
 	return &allReleases
 }
 
+func GetAllRecommendations(ctx context.Context) *model.AllRecommendations {
+	userID := middlewares.CtxUserID(ctx)
+	accessToken := SpotifyUserToken(userID)
+
+	var wg sync.WaitGroup
+	storedRecommendations := make(map[string][]*model.Release)
+	periods := []string{"past", "week", "month", "extended"}
+
+	for _, period := range periods {
+		wg.Add(1)
+		go func(p string) {
+			defer wg.Done()
+
+			recommendations, _ := db.GetUserRecommendations(userID, p)
+			storedRecommendations[p] = recommendations
+		}(period)
+	}
+
+	fmt.Println("Fetching all recommendations...")
+
+	artists, tracks, err := SpotifyUserTops(accessToken)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	artists, err = SpotifyRecommendations(artists, tracks)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	artists, err = SpotifyRelatedArtists(artists)
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+
+	genres := TopGenres(artists)
+
+	artistIds := db.GetMatchingArtists(artists, genres)
+
+	newRecommendations := make(map[string][]*model.Release)
+	for _, period := range periods {
+		wg.Add(1)
+		go func(p string) {
+			defer wg.Done()
+
+			releases, _ := db.GetMatchingReleases(artistIds, genres, p)
+			newRecommendations[p] = releases
+		}(period)
+	}
+
+	for _, period := range periods {
+		go func(p string) {
+			db.UploadUserRecommendations(userID, newRecommendations[p])
+		}(period)
+	}
+
+	wg.Wait()
+
+	var allRecommendations model.AllRecommendations
+	wg.Add(4)
+
+	go func(newRecs, storedRecs []*model.Release) {
+		defer wg.Done()
+		allRecommendations.Past = CombineReleases(newRecs, storedRecs)
+	}(newRecommendations["past"], storedRecommendations["past"])
+
+	go func(newRecs, storedRecs []*model.Release) {
+		defer wg.Done()
+		allRecommendations.Week = CombineReleases(newRecs, storedRecs)
+	}(newRecommendations["week"], storedRecommendations["week"])
+
+	go func(newRecs, storedRecs []*model.Release) {
+		defer wg.Done()
+		allRecommendations.Month = CombineReleases(newRecs, storedRecs)
+	}(newRecommendations["month"], storedRecommendations["month"])
+
+	go func(newRecs, storedRecs []*model.Release) {
+		defer wg.Done()
+		allRecommendations.Extended = CombineReleases(newRecs, storedRecs)
+	}(newRecommendations["extended"], storedRecommendations["extended"])
+
+	wg.Wait()
+
+	addRecommendationsTopArtists(&allRecommendations)
+
+	return &allRecommendations
+}
+
+func addRecommendationsTopArtists(releases *model.AllRecommendations) {
+	var topArtistsNames []string
+
+	counter := 0
+	for _, release := range releases.Past {
+		for _, artist := range release.Artists {
+			topArtistsNames = append(topArtistsNames, artist.Name)
+		}
+
+		counter++
+		if counter == 5 {
+			break
+		}
+	}
+
+	for _, release := range releases.Week {
+		for _, artist := range release.Artists {
+			topArtistsNames = append(topArtistsNames, artist.Name)
+		}
+
+		counter++
+		if counter == 10 {
+			break
+		}
+	}
+
+	for _, release := range releases.Month {
+		for _, artist := range release.Artists {
+			topArtistsNames = append(topArtistsNames, artist.Name)
+		}
+
+		counter++
+		if counter == 15 {
+			break
+		}
+	}
+
+	for _, release := range releases.Extended {
+		for _, artist := range release.Artists {
+			topArtistsNames = append(topArtistsNames, artist.Name)
+		}
+
+		counter++
+		if counter == 20 {
+			break
+		}
+	}
+
+	releases.Artists, _ = db.FindMatchingArtistNames(topArtistsNames)
+}
+
 func GetRecommendations(ctx context.Context, input model.RecommendationsInput) []*model.Release {
 	userID := middlewares.CtxUserID(ctx)
 	accessToken := SpotifyUserToken(userID)
@@ -56,7 +198,7 @@ func GetRecommendations(ctx context.Context, input model.RecommendationsInput) [
 
 	go func() {
 		defer wg.Done()
-		storedRecommendations, _ = db.GetUserRecommendations(userID)
+		storedRecommendations, _ = db.GetUserRecommendations(userID, input.Period)
 	}()
 
 	fmt.Println("Fetching recommendations...")

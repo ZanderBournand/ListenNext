@@ -22,8 +22,12 @@ import (
 var (
 	scrapingClientIDs = []string{
 		os.Getenv("SPOTIFY_API_SCRAPING_CLIENT_IDS"),
+		os.Getenv("SPOTIFY_API_SCRAPING_CLIENT_IDS"),
+		os.Getenv("SPOTIFY_API_SCRAPING_CLIENT_IDS"),
 	}
 	scrapingClientSecrets = []string{
+		os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET"),
+		os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET"),
 		os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET"),
 	}
 	generalClientID     = os.Getenv("SPOTIFY_API_GENERAL_CLIENT_ID")
@@ -274,9 +278,13 @@ func SpotifyRelatedArtist(artist *model.Artist) []*model.Artist {
 
 func SpotifyRelatedArtists(artists []types.SpotifyArtist) ([]types.SpotifyArtist, error) {
 	var wg sync.WaitGroup
+	maxGoroutines := 10
+	semaphore := make(chan struct{}, maxGoroutines)
 
 	for _, artist := range artists {
 		wg.Add(1)
+		semaphore <- struct{}{}
+
 		go func(artist types.SpotifyArtist) {
 			defer wg.Done()
 			endpoint := fmt.Sprintf("https://api.spotify.com/v1/artists/%s/related-artists", artist.ID)
@@ -318,6 +326,7 @@ func SpotifyRelatedArtists(artists []types.SpotifyArtist) ([]types.SpotifyArtist
 
 				artists = append(artists, relatedArtist)
 			}
+			<-semaphore
 		}(artist)
 	}
 

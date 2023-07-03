@@ -49,6 +49,14 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	AllRecommendations struct {
+		Artists  func(childComplexity int) int
+		Extended func(childComplexity int) int
+		Month    func(childComplexity int) int
+		Past     func(childComplexity int) int
+		Week     func(childComplexity int) int
+	}
+
 	AllReleasesCount struct {
 		Extended func(childComplexity int) int
 		Month    func(childComplexity int) int
@@ -90,6 +98,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
+		AllRecommendations  func(childComplexity int) int
 		AllReleasesCount    func(childComplexity int) int
 		AllTrendingReleases func(childComplexity int, typeArg string) int
 		Artist              func(childComplexity int, spotifyID string) int
@@ -161,6 +170,7 @@ type QueryResolver interface {
 	Release(ctx context.Context, id int) (*model.Release, error)
 	User(ctx context.Context, id string) (*model.User, error)
 	Recommendations(ctx context.Context, input model.RecommendationsInput) ([]*model.Release, error)
+	AllRecommendations(ctx context.Context) (*model.AllRecommendations, error)
 	SearchArtists(ctx context.Context, query string) (*model.SearchArtists, error)
 	Artist(ctx context.Context, spotifyID string) (*model.Artist, error)
 }
@@ -179,6 +189,41 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "AllRecommendations.artists":
+		if e.complexity.AllRecommendations.Artists == nil {
+			break
+		}
+
+		return e.complexity.AllRecommendations.Artists(childComplexity), true
+
+	case "AllRecommendations.extended":
+		if e.complexity.AllRecommendations.Extended == nil {
+			break
+		}
+
+		return e.complexity.AllRecommendations.Extended(childComplexity), true
+
+	case "AllRecommendations.month":
+		if e.complexity.AllRecommendations.Month == nil {
+			break
+		}
+
+		return e.complexity.AllRecommendations.Month(childComplexity), true
+
+	case "AllRecommendations.past":
+		if e.complexity.AllRecommendations.Past == nil {
+			break
+		}
+
+		return e.complexity.AllRecommendations.Past(childComplexity), true
+
+	case "AllRecommendations.week":
+		if e.complexity.AllRecommendations.Week == nil {
+			break
+		}
+
+		return e.complexity.AllRecommendations.Week(childComplexity), true
 
 	case "AllReleasesCount.extended":
 		if e.complexity.AllReleasesCount.Extended == nil {
@@ -369,6 +414,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.Auth(childComplexity), true
+
+	case "Query.allRecommendations":
+		if e.complexity.Query.AllRecommendations == nil {
+			break
+		}
+
+		return e.complexity.Query.AllRecommendations(childComplexity), true
 
 	case "Query.allReleasesCount":
 		if e.complexity.Query.AllReleasesCount == nil {
@@ -951,6 +1003,372 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _AllRecommendations_past(ctx context.Context, field graphql.CollectedField, obj *model.AllRecommendations) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AllRecommendations_past(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Past, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Release)
+	fc.Result = res
+	return ec.marshalNRelease2ᚕᚖmainᚋgraphᚋmodelᚐReleaseᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AllRecommendations_past(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AllRecommendations",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "_id":
+				return ec.fieldContext_Release__id(ctx, field)
+			case "title":
+				return ec.fieldContext_Release_title(ctx, field)
+			case "artists":
+				return ec.fieldContext_Release_artists(ctx, field)
+			case "featurings":
+				return ec.fieldContext_Release_featurings(ctx, field)
+			case "release_date":
+				return ec.fieldContext_Release_release_date(ctx, field)
+			case "cover":
+				return ec.fieldContext_Release_cover(ctx, field)
+			case "genres":
+				return ec.fieldContext_Release_genres(ctx, field)
+			case "producers":
+				return ec.fieldContext_Release_producers(ctx, field)
+			case "tracklist":
+				return ec.fieldContext_Release_tracklist(ctx, field)
+			case "type":
+				return ec.fieldContext_Release_type(ctx, field)
+			case "aoty_id":
+				return ec.fieldContext_Release_aoty_id(ctx, field)
+			case "spotify_id":
+				return ec.fieldContext_Release_spotify_id(ctx, field)
+			case "trending_score":
+				return ec.fieldContext_Release_trending_score(ctx, field)
+			case "artist_role":
+				return ec.fieldContext_Release_artist_role(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Release", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AllRecommendations_week(ctx context.Context, field graphql.CollectedField, obj *model.AllRecommendations) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AllRecommendations_week(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Week, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Release)
+	fc.Result = res
+	return ec.marshalNRelease2ᚕᚖmainᚋgraphᚋmodelᚐReleaseᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AllRecommendations_week(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AllRecommendations",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "_id":
+				return ec.fieldContext_Release__id(ctx, field)
+			case "title":
+				return ec.fieldContext_Release_title(ctx, field)
+			case "artists":
+				return ec.fieldContext_Release_artists(ctx, field)
+			case "featurings":
+				return ec.fieldContext_Release_featurings(ctx, field)
+			case "release_date":
+				return ec.fieldContext_Release_release_date(ctx, field)
+			case "cover":
+				return ec.fieldContext_Release_cover(ctx, field)
+			case "genres":
+				return ec.fieldContext_Release_genres(ctx, field)
+			case "producers":
+				return ec.fieldContext_Release_producers(ctx, field)
+			case "tracklist":
+				return ec.fieldContext_Release_tracklist(ctx, field)
+			case "type":
+				return ec.fieldContext_Release_type(ctx, field)
+			case "aoty_id":
+				return ec.fieldContext_Release_aoty_id(ctx, field)
+			case "spotify_id":
+				return ec.fieldContext_Release_spotify_id(ctx, field)
+			case "trending_score":
+				return ec.fieldContext_Release_trending_score(ctx, field)
+			case "artist_role":
+				return ec.fieldContext_Release_artist_role(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Release", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AllRecommendations_month(ctx context.Context, field graphql.CollectedField, obj *model.AllRecommendations) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AllRecommendations_month(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Month, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Release)
+	fc.Result = res
+	return ec.marshalNRelease2ᚕᚖmainᚋgraphᚋmodelᚐReleaseᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AllRecommendations_month(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AllRecommendations",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "_id":
+				return ec.fieldContext_Release__id(ctx, field)
+			case "title":
+				return ec.fieldContext_Release_title(ctx, field)
+			case "artists":
+				return ec.fieldContext_Release_artists(ctx, field)
+			case "featurings":
+				return ec.fieldContext_Release_featurings(ctx, field)
+			case "release_date":
+				return ec.fieldContext_Release_release_date(ctx, field)
+			case "cover":
+				return ec.fieldContext_Release_cover(ctx, field)
+			case "genres":
+				return ec.fieldContext_Release_genres(ctx, field)
+			case "producers":
+				return ec.fieldContext_Release_producers(ctx, field)
+			case "tracklist":
+				return ec.fieldContext_Release_tracklist(ctx, field)
+			case "type":
+				return ec.fieldContext_Release_type(ctx, field)
+			case "aoty_id":
+				return ec.fieldContext_Release_aoty_id(ctx, field)
+			case "spotify_id":
+				return ec.fieldContext_Release_spotify_id(ctx, field)
+			case "trending_score":
+				return ec.fieldContext_Release_trending_score(ctx, field)
+			case "artist_role":
+				return ec.fieldContext_Release_artist_role(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Release", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AllRecommendations_extended(ctx context.Context, field graphql.CollectedField, obj *model.AllRecommendations) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AllRecommendations_extended(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Extended, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Release)
+	fc.Result = res
+	return ec.marshalNRelease2ᚕᚖmainᚋgraphᚋmodelᚐReleaseᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AllRecommendations_extended(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AllRecommendations",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "_id":
+				return ec.fieldContext_Release__id(ctx, field)
+			case "title":
+				return ec.fieldContext_Release_title(ctx, field)
+			case "artists":
+				return ec.fieldContext_Release_artists(ctx, field)
+			case "featurings":
+				return ec.fieldContext_Release_featurings(ctx, field)
+			case "release_date":
+				return ec.fieldContext_Release_release_date(ctx, field)
+			case "cover":
+				return ec.fieldContext_Release_cover(ctx, field)
+			case "genres":
+				return ec.fieldContext_Release_genres(ctx, field)
+			case "producers":
+				return ec.fieldContext_Release_producers(ctx, field)
+			case "tracklist":
+				return ec.fieldContext_Release_tracklist(ctx, field)
+			case "type":
+				return ec.fieldContext_Release_type(ctx, field)
+			case "aoty_id":
+				return ec.fieldContext_Release_aoty_id(ctx, field)
+			case "spotify_id":
+				return ec.fieldContext_Release_spotify_id(ctx, field)
+			case "trending_score":
+				return ec.fieldContext_Release_trending_score(ctx, field)
+			case "artist_role":
+				return ec.fieldContext_Release_artist_role(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Release", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AllRecommendations_artists(ctx context.Context, field graphql.CollectedField, obj *model.AllRecommendations) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_AllRecommendations_artists(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Artists, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Artist)
+	fc.Result = res
+	return ec.marshalNArtist2ᚕᚖmainᚋgraphᚋmodelᚐArtistᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_AllRecommendations_artists(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AllRecommendations",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "spotify_id":
+				return ec.fieldContext_Artist_spotify_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Artist_name(ctx, field)
+			case "image":
+				return ec.fieldContext_Artist_image(ctx, field)
+			case "genres":
+				return ec.fieldContext_Artist_genres(ctx, field)
+			case "popularity":
+				return ec.fieldContext_Artist_popularity(ctx, field)
+			case "recent_releases_count":
+				return ec.fieldContext_Artist_recent_releases_count(ctx, field)
+			case "upcoming_releases_count":
+				return ec.fieldContext_Artist_upcoming_releases_count(ctx, field)
+			case "recent_releases":
+				return ec.fieldContext_Artist_recent_releases(ctx, field)
+			case "upcoming_releases":
+				return ec.fieldContext_Artist_upcoming_releases(ctx, field)
+			case "top_tracks":
+				return ec.fieldContext_Artist_top_tracks(ctx, field)
+			case "singles":
+				return ec.fieldContext_Artist_singles(ctx, field)
+			case "albums":
+				return ec.fieldContext_Artist_albums(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Artist", field.Name)
+		},
+	}
+	return fc, nil
+}
 
 func (ec *executionContext) _AllReleasesCount_past(ctx context.Context, field graphql.CollectedField, obj *model.AllReleasesCount) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_AllReleasesCount_past(ctx, field)
@@ -2903,6 +3321,82 @@ func (ec *executionContext) fieldContext_Query_recommendations(ctx context.Conte
 	if fc.Args, err = ec.field_Query_recommendations_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_allRecommendations(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Query_allRecommendations(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().AllRecommendations(rctx)
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			if ec.directives.Spotify == nil {
+				return nil, errors.New("directive spotify is not implemented")
+			}
+			return ec.directives.Spotify(ctx, nil, directive0)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.AllRecommendations); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *main/graph/model.AllRecommendations`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.AllRecommendations)
+	fc.Result = res
+	return ec.marshalNAllRecommendations2ᚖmainᚋgraphᚋmodelᚐAllRecommendations(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Query_allRecommendations(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "past":
+				return ec.fieldContext_AllRecommendations_past(ctx, field)
+			case "week":
+				return ec.fieldContext_AllRecommendations_week(ctx, field)
+			case "month":
+				return ec.fieldContext_AllRecommendations_month(ctx, field)
+			case "extended":
+				return ec.fieldContext_AllRecommendations_extended(ctx, field)
+			case "artists":
+				return ec.fieldContext_AllRecommendations_artists(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AllRecommendations", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -6295,6 +6789,62 @@ func (ec *executionContext) unmarshalInputReleasesInput(ctx context.Context, obj
 
 // region    **************************** object.gotpl ****************************
 
+var allRecommendationsImplementors = []string{"AllRecommendations"}
+
+func (ec *executionContext) _AllRecommendations(ctx context.Context, sel ast.SelectionSet, obj *model.AllRecommendations) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, allRecommendationsImplementors)
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AllRecommendations")
+		case "past":
+
+			out.Values[i] = ec._AllRecommendations_past(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "week":
+
+			out.Values[i] = ec._AllRecommendations_week(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "month":
+
+			out.Values[i] = ec._AllRecommendations_month(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "extended":
+
+			out.Values[i] = ec._AllRecommendations_extended(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "artists":
+
+			out.Values[i] = ec._AllRecommendations_artists(ctx, field, obj)
+
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var allReleasesCountImplementors = []string{"AllReleasesCount"}
 
 func (ec *executionContext) _AllReleasesCount(ctx context.Context, sel ast.SelectionSet, obj *model.AllReleasesCount) graphql.Marshaler {
@@ -6795,6 +7345,29 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_recommendations(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx, innerFunc)
+			}
+
+			out.Concurrently(i, func() graphql.Marshaler {
+				return rrm(innerCtx)
+			})
+		case "allRecommendations":
+			field := field
+
+			innerFunc := func(ctx context.Context) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_allRecommendations(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -7444,6 +8017,20 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 // endregion **************************** object.gotpl ****************************
 
 // region    ***************************** type.gotpl *****************************
+
+func (ec *executionContext) marshalNAllRecommendations2mainᚋgraphᚋmodelᚐAllRecommendations(ctx context.Context, sel ast.SelectionSet, v model.AllRecommendations) graphql.Marshaler {
+	return ec._AllRecommendations(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAllRecommendations2ᚖmainᚋgraphᚋmodelᚐAllRecommendations(ctx context.Context, sel ast.SelectionSet, v *model.AllRecommendations) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._AllRecommendations(ctx, sel, v)
+}
 
 func (ec *executionContext) marshalNAllReleasesCount2mainᚋgraphᚋmodelᚐAllReleasesCount(ctx context.Context, sel ast.SelectionSet, v model.AllReleasesCount) graphql.Marshaler {
 	return ec._AllReleasesCount(ctx, sel, &v)

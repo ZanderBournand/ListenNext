@@ -6,6 +6,7 @@ interface User {
     _id: number;
     display_name: string;
     email: string;
+    is_streaming_auth: boolean;
   }
 
 interface UserContextType {
