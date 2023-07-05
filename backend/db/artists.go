@@ -67,8 +67,8 @@ func UploadArtist(artist string, spotifyArtist *types.SpotifyArtist) (int64, int
 		var id int64
 		err := db.QueryRow("SELECT id FROM Artists WHERE name=$1 AND spotify_id=$2", spotifyArtist.Name, spotifyArtist.ID).Scan(&id)
 		if err == nil {
-			_, err = db.Exec("UPDATE Artists SET popularity=$1 WHERE name=$2 AND spotify_id=$3",
-				spotifyArtist.Popularity, spotifyArtist.Name, spotifyArtist.ID)
+			_, err = db.Exec("UPDATE Artists SET popularity=$1, image=$2 WHERE name=$3 AND spotify_id=$4",
+				spotifyArtist.Popularity, spotifyArtist.Image, spotifyArtist.Name, spotifyArtist.ID)
 			if err == nil {
 				AddOrUpdateArtistGenres(id, spotifyArtist.Genres)
 				return id, spotifyArtist.Popularity, nil
@@ -76,8 +76,8 @@ func UploadArtist(artist string, spotifyArtist *types.SpotifyArtist) (int64, int
 			return -1, -1, err
 		} else if err == sql.ErrNoRows {
 			var newID int64
-			err = db.QueryRow("INSERT INTO Artists(name, spotify_id, popularity, compare_name) VALUES($1, $2, $3, $4) RETURNING id",
-				spotifyArtist.Name, spotifyArtist.ID, spotifyArtist.Popularity, compareName).Scan(&newID)
+			err = db.QueryRow("INSERT INTO Artists(name, spotify_id, popularity, compare_name, image) VALUES($1, $2, $3, $4, $5) RETURNING id",
+				spotifyArtist.Name, spotifyArtist.ID, spotifyArtist.Popularity, compareName, spotifyArtist.Image).Scan(&newID)
 			if err == nil {
 				AddOrUpdateArtistGenres(newID, spotifyArtist.Genres)
 				return newID, spotifyArtist.Popularity, nil
@@ -388,7 +388,7 @@ func FindMatchingArtistNames(names []string) ([]*model.Artist, error) {
 	}
 
 	query := `
-		SELECT name, spotify_id, popularity
+		SELECT name, spotify_id, popularity, image
 		FROM Artists
 		WHERE name IN (` + strings.Join(placeholders, ", ") + `)
 		ORDER BY popularity DESC
@@ -402,7 +402,7 @@ func FindMatchingArtistNames(names []string) ([]*model.Artist, error) {
 
 	for rows.Next() {
 		var artist model.Artist
-		if err := rows.Scan(&artist.Name, &artist.SpotifyID, &artist.Popularity); err != nil {
+		if err := rows.Scan(&artist.Name, &artist.SpotifyID, &artist.Popularity, &artist.Image); err != nil {
 			return nil, err
 		}
 		artists = append(artists, &artist)

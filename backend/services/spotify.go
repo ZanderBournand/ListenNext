@@ -13,25 +13,11 @@ import (
 	"math/rand"
 	"net/http"
 	"net/url"
+	"os"
 	"sort"
 	"strings"
 	"sync"
 	"time"
-)
-
-var (
-	scrapingClientIDs = []string{
-		os.Getenv("SPOTIFY_API_SCRAPING_CLIENT_IDS"),
-		os.Getenv("SPOTIFY_API_SCRAPING_CLIENT_IDS"),
-		os.Getenv("SPOTIFY_API_SCRAPING_CLIENT_IDS"),
-	}
-	scrapingClientSecrets = []string{
-		os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET"),
-		os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET"),
-		os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET"),
-	}
-	generalClientID     = os.Getenv("SPOTIFY_API_GENERAL_CLIENT_ID")
-	generalClientSecret = os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET")
 )
 
 var (
@@ -40,7 +26,13 @@ var (
 )
 
 func SpotifyScrapeTokens() {
-	numTokens := len(scrapingClientIDs)
+	tokensIdsString := os.Getenv("SPOTIFY_API_SCRAPING_CLIENT_IDS")
+	tokensSecretsString := os.Getenv("SPOTIFY_API_SCRAPING_CLIENT_SECRETS")
+
+	scrapingTokensClientIDs := strings.Split(tokensIdsString, ",")
+	scrapingTokensClientSecrets := strings.Split(tokensSecretsString, ",")
+
+	numTokens := len(scrapingTokensClientIDs)
 	tokens := make([]string, numTokens)
 
 	for i := 0; i < numTokens; i++ {
@@ -49,7 +41,7 @@ func SpotifyScrapeTokens() {
 			panic(err)
 		}
 
-		req.SetBasicAuth(scrapingClientIDs[i], scrapingClientSecrets[i])
+		req.SetBasicAuth(scrapingTokensClientIDs[i], scrapingTokensClientSecrets[i])
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 		res, err := http.DefaultClient.Do(req)
@@ -77,7 +69,10 @@ func SpotifyGeneralToken() {
 		panic(err)
 	}
 
-	req.SetBasicAuth(generalClientID, generalClientSecret)
+	generalTokenClientID := os.Getenv("SPOTIFY_API_GENERAL_CLIENT_ID")
+	generalTokenClientSecret := os.Getenv("SPOTIFY_API_GENERAL_CLIENT_SECRET")
+
+	req.SetBasicAuth(generalTokenClientID, generalTokenClientSecret)
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
 	res, err := http.DefaultClient.Do(req)
@@ -278,7 +273,7 @@ func SpotifyRelatedArtist(artist *model.Artist) []*model.Artist {
 
 func SpotifyRelatedArtists(artists []types.SpotifyArtist) ([]types.SpotifyArtist, error) {
 	var wg sync.WaitGroup
-	maxGoroutines := 10
+	maxGoroutines := 3
 	semaphore := make(chan struct{}, maxGoroutines)
 
 	for _, artist := range artists {
@@ -286,7 +281,10 @@ func SpotifyRelatedArtists(artists []types.SpotifyArtist) ([]types.SpotifyArtist
 		semaphore <- struct{}{}
 
 		go func(artist types.SpotifyArtist) {
-			defer wg.Done()
+			defer func() {
+				wg.Done()
+				<-semaphore
+			}()
 			endpoint := fmt.Sprintf("https://api.spotify.com/v1/artists/%s/related-artists", artist.ID)
 
 			rand.Seed(time.Now().UnixNano())
@@ -301,6 +299,7 @@ func SpotifyRelatedArtists(artists []types.SpotifyArtist) ([]types.SpotifyArtist
 			client := &http.Client{}
 			res, err := client.Do(req)
 			if err != nil || res.StatusCode != 200 {
+				fmt.Println("SpotifyRelatedArtists Error Code:", res.StatusCode, "/ Token Index:", tokenIndex)
 				panic(err)
 			}
 			defer res.Body.Close()
@@ -326,7 +325,6 @@ func SpotifyRelatedArtists(artists []types.SpotifyArtist) ([]types.SpotifyArtist
 
 				artists = append(artists, relatedArtist)
 			}
-			<-semaphore
 		}(artist)
 	}
 
@@ -415,6 +413,7 @@ func Recommendations(artistIds []string, genres []string, trackIds []string) ([]
 	client := &http.Client{}
 	res, err := client.Do(req)
 	if err != nil {
+		fmt.Println("Recommendations Error Code:", res.StatusCode, "/ Token Index:", tokenIndex)
 		return nil, err
 	}
 	defer res.Body.Close()
@@ -498,6 +497,23 @@ func TopGenres(artists []types.SpotifyArtist) []string {
 	return topGenres
 }
 
+func CombineArtists(relatedArtists []types.SpotifyArtist, recommendedArtists []types.SpotifyArtist) []types.SpotifyArtist {
+	artistSet := make(map[string]struct{})
+
+	for _, artist := range relatedArtists {
+		artistSet[artist.ID] = struct{}{}
+	}
+
+	for _, artist := range recommendedArtists {
+		if _, exists := artistSet[artist.ID]; !exists {
+			artistSet[artist.ID] = struct{}{}
+			relatedArtists = append(relatedArtists, artist)
+		}
+	}
+
+	return relatedArtists
+}
+
 func SpotifySearch(artist string) (*types.SpotifyArtist, error) {
 	compareName := strings.ToLower(strings.ReplaceAll(artist, " ", ""))
 
@@ -535,11 +551,18 @@ func SpotifySearch(artist string) (*types.SpotifyArtist, error) {
 				genres = append(genres, genre.(string))
 			}
 
+			images := artist.(map[string]interface{})["images"].([]interface{})
+			var imageURL string
+			if len(images) > 0 {
+				imageURL = images[0].(map[string]interface{})["url"].(string)
+			}
+
 			spotifyAritst := types.SpotifyArtist{
 				Name:       artist.(map[string]interface{})["name"].(string),
 				ID:         artist.(map[string]interface{})["id"].(string),
 				Genres:     genres,
 				Popularity: int(artist.(map[string]interface{})["popularity"].(float64)),
+				Image:      imageURL,
 			}
 
 			return &spotifyAritst, nil

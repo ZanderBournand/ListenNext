@@ -51,57 +51,73 @@ func GetAllRecommendations(ctx context.Context) *model.AllRecommendations {
 
 	var wg sync.WaitGroup
 	storedRecommendations := make(map[string][]*model.Release)
+	newRecommendations := make(map[string][]*model.Release)
 	periods := []string{"past", "week", "month", "extended"}
+
+	fmt.Println("Fetching all recommendations...")
 
 	for _, period := range periods {
 		wg.Add(1)
-		go func(p string) {
+		go func(userID string, p string) {
 			defer wg.Done()
 
 			recommendations, _ := db.GetUserRecommendations(userID, p)
 			storedRecommendations[p] = recommendations
-		}(period)
+		}(userID, period)
 	}
 
-	fmt.Println("Fetching all recommendations...")
+	lastRecommendationsTimestamp := db.GetUserLastRecommendationsTimestamp(userID)
+	lastScrapeTime := db.GetLastScrapeTime()
 
-	artists, tracks, err := SpotifyUserTops(accessToken)
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
+	if lastScrapeTime.After(lastRecommendationsTimestamp) {
+		fmt.Println("Fetching new recommendations...")
 
-	artists, err = SpotifyRecommendations(artists, tracks)
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
+		artists, tracks, err := SpotifyUserTops(accessToken)
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
 
-	artists, err = SpotifyRelatedArtists(artists)
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
+		relatedArtists, err := SpotifyRelatedArtists(artists)
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
 
-	genres := TopGenres(artists)
+		recommendedArtists, err := SpotifyRecommendations(artists, tracks)
+		if err != nil {
+			fmt.Println(err)
+			return nil
+		}
 
-	artistIds := db.GetMatchingArtists(artists, genres)
+		allArtists := CombineArtists(relatedArtists, recommendedArtists)
+		genres := TopGenres(allArtists)
 
-	newRecommendations := make(map[string][]*model.Release)
-	for _, period := range periods {
-		wg.Add(1)
-		go func(p string) {
-			defer wg.Done()
+		artistIds := db.GetMatchingArtists(allArtists, genres)
 
-			releases, _ := db.GetMatchingReleases(artistIds, genres, p)
-			newRecommendations[p] = releases
-		}(period)
-	}
+		for _, period := range periods {
+			wg.Add(1)
+			go func(artistIds []int, genres []string, p string) {
+				defer wg.Done()
 
-	for _, period := range periods {
-		go func(p string) {
-			db.UploadUserRecommendations(userID, newRecommendations[p])
-		}(period)
+				releases, _ := db.GetMatchingReleases(artistIds, genres, p)
+				newRecommendations[p] = releases
+			}(artistIds, genres, period)
+		}
+
+		wg.Wait()
+
+		// Upload newly fetched recommendatins to DB
+		for _, period := range periods {
+			go func(userID string, newRecommendations []*model.Release) {
+				db.UploadUserRecommendations(userID, newRecommendations)
+			}(userID, newRecommendations[period])
+		}
+
+		// Update last recommendations timestamp for user
+		go func(userID string) {
+			db.UpdateUserLastRecommendationsTimestamp(userID)
+		}(userID)
 	}
 
 	wg.Wait()

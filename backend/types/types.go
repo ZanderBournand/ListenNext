@@ -34,6 +34,7 @@ type SpotifyArtist struct {
 	ID         string   `json:"id"`
 	Genres     []string `json:"genres"`
 	Popularity int      `json:"popularity"`
+	Image      string   `json:"image"`
 }
 
 type SpotifyTrack struct {

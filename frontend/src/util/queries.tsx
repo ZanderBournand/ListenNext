@@ -42,6 +42,7 @@ export const queryAllRecommendations = `
         name
         popularity
         spotify_id
+        image
       }
       past {
         _id

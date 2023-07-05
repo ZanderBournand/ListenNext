@@ -55,39 +55,3 @@ export default function RelatedSearch({artist}: any) {
         </Card>
     )
 }
-
-// {artist.recent_releases_count > 0 && artist.upcoming_releases_count == 0 && 
-//     <div className="pt-4">
-//         <Badge size="xs">
-//             <span className="font-bold text-sm">{artist.recent_releases_count}</span> Recent
-//         </Badge>
-//     </div>
-// }
-// {artist.upcoming_releases_count > 0 && artist.recent_releases_count == 0 &&
-//     <div className="pt-4">
-//         <Badge>
-//         <span className="font-bold text-sm">{artist.upcoming_releases_count}</span> Upcoming
-//         </Badge>
-//     </div>
-// }
-// {artist.upcoming_releases_count > 0 && artist.recent_releases_count > 0 &&
-//     <>
-//         <div className="py-1">
-//             <Badge size="xs">
-//                 <span className="font-bold text-sm">{artist.recent_releases_count}</span> Recent
-//             </Badge>
-//         </div>
-//         <div className="py-1">
-//             <Badge>
-//             <span className="font-bold text-sm">{artist.upcoming_releases_count}</span> Upcoming
-//             </Badge>
-//         </div>
-//     </>
-// }
-// {artist.upcoming_releases_count == 0 && artist.upcoming_releases_count == 0 &&
-//     <div className="pt-4">
-//         <Badge color="gray" size="sm">
-//         N/A
-//         </Badge>
-//     </div>
-// }

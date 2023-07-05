@@ -112,6 +112,26 @@ func UploadUserRecommendations(UserId string, releases []*model.Release) {
 	}
 }
 
+func UpdateUserLastRecommendationsTimestamp(UserId string) {
+	query := `UPDATE users SET last_recommendations=$1 WHERE id=$2`
+
+	utcNow := time.Now().UTC()
+
+	db.Exec(query, utcNow, UserId)
+}
+
+func GetUserLastRecommendationsTimestamp(UserId string) time.Time {
+	var timestamp time.Time
+
+	err := db.QueryRow("SELECT last_recommendations FROM users WHERE id = $1", UserId).Scan(&timestamp)
+	if err != nil {
+		fmt.Println(err)
+		return time.Time{}
+	}
+
+	return timestamp
+}
+
 func GetUserRecommendations(UserId string, period string) ([]*model.Release, error) {
 	startDate, endDate := tools.GetReleaseDates(period)
 

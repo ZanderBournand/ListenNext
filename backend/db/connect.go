@@ -3,15 +3,15 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"os"
 
 	_ "github.com/lib/pq"
 )
 
-const connStr = os.Getenv("DB_CONNECT_STRING")
-
 var db *sql.DB
 
 func Connect() {
+	connStr := os.Getenv("DB_CONNECT_STRING")
 	database, err := sql.Open("postgres", connStr)
 	if err != nil {
 		panic(err)
